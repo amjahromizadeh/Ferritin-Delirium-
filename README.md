@@ -76,6 +76,8 @@ A detailed mapping of scripts to their purpose is provided in the following tabl
 | 15    | SuSiE–coloc Delirium x APOE sQTL                      | SuSiE fine-mapping and `coloc.susie` colocalisation between Delirium GWAS and sQTL in the APOE  window.                                                                                                                                             |
 | 16    | SuSiE-coloc Ferritin x APOE pQTL                      | SuSiE fine-mapping and `coloc.susie` colocalisation between Ferritin GWAS and pQTL (prot-a-131) in the APOE window.                                                                                                                                 |
 | 17    | SuSiE-coloc Ferritin x Delirium                       | SuSiE fine-mapping and `coloc.susie` colocalisation between Ferritin and Delirium GWAS in the APOE region.                                                                                                                                          |
+
+
 For a quick overview, the main **analysis blocks** are:
 
 - **Two-sample MR:**  
