@@ -1,0 +1,1237 @@
+---
+title: "Mendelian randomization, SMR/HEIDI, and colocalisation report: Serum ferritin and delirium risk"
+subtitle: "Serum ferritin and delirium risk: Integrative genomic analysis identifies locus-specific signals at 19q13 with no genome-wide causal effect"
+author: "Nafiseh"
+date: "2025-12-20"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: true
+    code_folding: hide
+    df_print: paged
+    theme: flatly
+    self_contained: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE, message = FALSE, warning = FALSE,
+  fig.align = "center", fig.width = 7.5, fig.height = 4.8
+)
+
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(tidyr)
+  library(data.table)
+  library(ggplot2)
+  library(knitr)
+  library(kableExtra)
+  library(stringr)
+})
+
+# ---------------------------
+# Colour system (your palette)
+# ---------------------------
+COL <- list(
+  ceil     = "#999ECF",
+  platinum = "#EDDDEC",
+  liberty  = "#60509D",
+  blue     = "#3E389E",
+  grape    = "#5D1451",
+  lilac    = "#adbae3",
+  butter   = "#FFEDA8",
+  pancake  = "#D99058",
+  rose     = "#E5C8CD",
+  pine     = "#1D6C5C"
+)
+
+# Accent assignment (consistent throughout report)
+COL_FERRITIN <- COL$blue
+COL_DELIRIUM <- COL$pine
+COL_NEUTRAL  <- "#333333"
+
+# ---------------------------
+# Paths (GitHub Pages-friendly)
+# Assumes this Rmd lives in docs/
+# ---------------------------
+DOCS_DIR <- if (basename(getwd()) == "docs") getwd() else file.path(getwd(), "docs")
+FIG_DIR  <- file.path(DOCS_DIR, "figures")
+DATA_DIR <- file.path(DOCS_DIR, "data")
+dir.create(FIG_DIR,  showWarnings = FALSE, recursive = TRUE)
+dir.create(DATA_DIR, showWarnings = FALSE, recursive = TRUE)
+
+# ---------------------------
+# Helpers
+# ---------------------------
+fmt_p <- function(p) {
+  ifelse(is.na(p), NA_character_,
+         ifelse(p < 1e-3, format(p, scientific = TRUE, digits = 2), formatC(p, digits = 3, format = "f")))
+}
+fmt_num <- function(x, d = 3) ifelse(is.na(x), NA_character_, formatC(x, digits = d, format = "f"))
+fmt_e   <- function(x, d = 2) ifelse(is.na(x), NA_character_, format(x, scientific = TRUE, digits = d))
+
+or_ci <- function(beta, se){
+  OR  <- exp(beta)
+  LCI <- exp(beta - 1.96 * se)
+  UCI <- exp(beta + 1.96 * se)
+  c(OR = OR, LCI = LCI, UCI = UCI)
+}
+
+kbl_nice <- function(df, caption = NULL){
+  kable(df, format = "html", caption = caption, escape = FALSE) |>
+    kable_styling(
+      full_width = FALSE,
+      position = "left",
+      bootstrap_options = c("striped", "hover", "condensed", "responsive")
+    ) |>
+    row_spec(0, background = COL$platinum, color = COL$grape)
+}
+
+# Tooltip bubble (CSS hover). Usage: tip("definition text")
+tip <- function(def){
+  sprintf('<span class="help">?<span class="helptext">%s</span></span>', def)
+}
+
+
+dl_btn <- function(label, href){
+  sprintf('<a class="dl-btn" href="%s" download>%s</a>', href, label)
+}
+
+```
+
+<style> :root{ --ceil: #999ECF; --platinum: #EDDDEC; --liberty: #60509D; --blue: #3E389E; --grape: #5D1451; --lilac: #adbae3; --butter: #FFEDA8; --pancake: #D99058; --rose: #E5C8CD; --pine: #1D6C5C; } h1, h2, h3 { color: var(--grape); } h2 { margin-top: 1.2em; border-bottom: 2px solid var(--platinum); padding-bottom: 0.25em; } h3 { margin-top: 1.0em; } .callout { background: var(--platinum); border-left: 6px solid var(--blue); padding: 12px 14px; border-radius: 14px; margin: 10px 0 16px 0; } .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin: 10px 0 16px 0; } .cardx{ background: white; border: 1px solid var(--platinum); border-radius: 16px; padding: 10px 12px; box-shadow: 0 6px 18px rgba(0,0,0,0.04); } .cardx .k { color: #555; font-size: 0.88em; } .cardx .v { color: var(--grape); font-size: 1.25em; font-weight: 700; } .badge{ display:inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.85em; font-weight: 600; background: var(--butter); color: #3a2d00; border: 1px solid rgba(0,0,0,0.06); } details{ background: white; border: 1px solid var(--platinum); border-radius: 16px; padding: 10px 12px; margin: 12px 0 16px 0; } summary{ cursor: pointer; font-weight: 700; color: var(--blue); } summary:hover{ color: var(--liberty); } .dl-btn{ display: inline-block; padding: 8px 12px; border-radius: 999px; background: var(--blue); color: white !important; text-decoration: none !important; font-weight: 700; font-size: 0.90em; margin: 6px 8px 6px 0; } .dl-btn:hover{ background: var(--liberty); } .help{ position: relative; display: inline-block; width: 18px; height: 18px; line-height: 18px; text-align: center; border-radius: 999px; background: var(--lilac); color: var(--grape); font-weight: 800; font-size: 0.85em; margin-left: 6px; vertical-align: text-top; } .helptext{ visibility: hidden; opacity: 0; width: 320px; background: var(--platinum); color: #1f1f1f; border: 1px solid var(--ceil); border-radius: 14px; padding: 10px 12px; position: absolute; z-index: 999; top: 24px; left: -140px; box-shadow: 0 8px 22px rgba(0,0,0,0.08); transition: opacity 0.15s ease-in-out; } .helptext{ visibility: hidden; opacity: 0; width: 320px; background: var(--platinum); color: #1f1f1f; border: 1px solid var(--ceil); border-radius: 14px; padding: 10px 12px; position: absolute; z-index: 999; top: 24px; left: -140px; box-shadow: 0 8px 22px rgba(0,0,0,0.08); transition: opacity 0.15s ease-in-out; } .help:hover .helptext{ visibility: visible; opacity: 1; text-align: justify; text-justify: inter-word; hyphens: auto;} .figcap{ margin-top: 8px; margin-bottom: 26px; font-size: 0.95em; color: #444; background: #fafafa; border: 1px solid var(--platinum); border-radius: 14px; padding: 10px 12px; } .figcap b{ color: var(--grape); } .scroll-x{overflow-x: auto; overflow-y: hidden; width: 100%; padding-bottom: 6px;  } .scroll-xy{overflow: auto; width: 100%; max-height: 420px; padding-bottom: 6px; }
+</style>
+  
+## Authors List:
+
+ 1.  Amirhossein Saed
+ 2.  Mahdi Akbarzadeh
+ 3.  Fatemeh Gohari
+ 4.  Nafiseh Asadrouh
+ 5.  Amir Mohammad Jahromizadeh
+ 6.  Hani Sabaie
+ 7.  Maryam Zarkesh
+ 8.  Mehdi Hedayati
+ 9.  Fereidoun Azizi
+ 10. Maryam Sadat Daneshpour
+
+## Data and preprocessing
+
+### Introduction
+
+Exposure: Ferritin \| GWAS summary statistics: [GWAS catalogue](https://www.ebi.ac.uk/gwas/studies/GCST90270865) \| Reference paper: [Butler-Laporte G et al.2023](https://pubmed.ncbi.nlm.nih.gov/36773317/)
+
+-   Sample size: 270,794
+
+-   Ancestry: European
+
+Outcome: Delirium \| GWAS summary statistics: [GWAS catalogue](https://www.ebi.ac.uk/gwas/studies/GCST90473243) \| Reference paper: [UK Biobank Whole-Genome Sequencing Consortium](https://www.ebi.ac.uk/gwas/studies/GCST90473243)
+
+-   Sample size: 458,440
+
+-   Ancestry: European
+
+### Data Prepration
+
+**Ferritin GWAS:**
+
+-   Number of total SNPs in the raw exposure file: 10,251,641
+-   Number of total SNPs in the harmonized exposure file: 10,218,238
+-   Number of total SNPs with invalid rsID: 0
+-   Number of total SNPs with invalid alleles: 0
+-   Number of total SNPs with 0.42 \< MAF \< 0.58: 0
+-   Number of total SNPs with non-numeric se/b/p: 0
+
+**Delirium GWAS:**
+
+-   Number of total SNPs in the raw exposure file: 96,468,105
+-   Number of total SNPs in the harmonized exposure file: 84,399,074
+-   Number of total SNPs with invalid rsID: 0
+-   Number of total SNPs with invalid alleles: 7,725,089
+-   Number of total SNPs with 0.42 \< MAF \< 0.58: 67,065,071
+-   Number of total SNPs with non-numeric se/b/p: 0
+
+------------------------------------------------------------------------
+
+## Integrated results across MR, SMR/HEIDI, and colocalisation {.tabset .tabset-fade}
+
+### **Two-sample MR** 
+
+```{r tab1_mr_objects}
+# ============================================================
+# Tab 1 — Two-sample MR
+# Values sourced from your MR log (TwoSampleMR + MR-PRESSO) and scripts.
+# ============================================================
+
+mean_F <- 78.76
+
+# --- Main MR estimates (TwoSampleMR)
+mr_main <- tibble::tribble(
+  ~method, ~nsnp, ~beta, ~se, ~pval,
+  "IVW (multiplicative random effects)", 70L, 0.0822032, 0.0764773, 0.2824330,
+  "MR-Egger",                            70L, 0.1617036, 0.1414843, 0.2570848,
+  "Weighted median",                     70L, 0.0898712, 0.0974262, 0.3562921
+) |>
+  rowwise() |>
+  mutate(
+    OR  = or_ci(beta, se)["OR"],
+    LCI = or_ci(beta, se)["LCI"],
+    UCI = or_ci(beta, se)["UCI"]
+  ) |>
+  ungroup()
+
+# --- Heterogeneity (Cochran's Q)
+het <- tibble::tribble(
+  ~method, ~Q, ~Q_df, ~Q_pval,
+  "IVW",      96.99547, 69L, 0.0147892,
+  "MR-Egger", 96.36125, 68L, 0.0134358
+)
+
+# --- MR-Egger intercept (directional pleiotropy)
+pleio <- tibble::tibble(
+  egger_intercept = -0.0034819,
+  se = 0.0052046,
+  pval = 0.5057626
+)
+
+# --- Steiger directionality
+steiger <- tibble::tibble(
+  snp_r2_exposure = 0.0206426,
+  snp_r2_outcome  = 0.0002185,
+  correct_causal_direction = TRUE,
+  steiger_pval = 0
+)
+
+# --- MR-PRESSO summary
+presso <- tibble::tribble(
+  ~analysis, ~beta, ~se, ~pval,
+  "Raw",               0.0878940, 0.0762235, 0.2527882,
+  "Outlier-corrected", 0.1198282, 0.0585500, 0.0445093
+) |>
+  rowwise() |>
+  mutate(
+    OR  = or_ci(beta, se)["OR"],
+    LCI = or_ci(beta, se)["LCI"],
+    UCI = or_ci(beta, se)["UCI"]
+  ) |>
+  ungroup()
+
+presso_global_p    <- 0.017
+presso_distort_p   <- 0.705
+presso_outlier_n   <- 1L  # from your narrative: a single flagged index downstream
+
+# --- Export tidy TSVs to docs/data/ for download buttons
+fwrite(as.data.table(mr_main), file.path(DATA_DIR, "tab1_mr_main.tsv"), sep = "\t")
+fwrite(as.data.table(het),     file.path(DATA_DIR, "tab1_mr_heterogeneity.tsv"), sep = "\t")
+fwrite(as.data.table(pleio),   file.path(DATA_DIR, "tab1_mr_pleiotropy.tsv"), sep = "\t")
+fwrite(as.data.table(steiger), file.path(DATA_DIR, "tab1_mr_steiger.tsv"), sep = "\t")
+fwrite(as.data.table(presso),  file.path(DATA_DIR, "tab1_mr_presso.tsv"), sep = "\t")
+
+```
+
+```{r tab1_mr_header, results="asis"}
+ivw <- mr_main |> dplyr::filter(method == "IVW (multiplicative random effects)") |> dplyr::slice(1)
+
+cat(sprintf('
+<div class="callout">
+<b>Integrated MR interpretation.</b>
+The primary IVW (random-effects) estimate is <b>non-significant</b>
+(OR = %.3f, 95%% CI %.3f–%.3f; p = %s).
+There is evidence of heterogeneity (IVW Cochran’s Q p = %s), but no evidence of <i>directional</i> pleiotropy (MR-Egger intercept p = %s).
+Steiger filtering supports the direction Ferritin → Delirium (R²<sub>x</sub> > R²<sub>y</sub>; p = %s).
+MR-PRESSO detects outliers (global p = %s), but the distortion test is non-significant (p = %s), so the outlier-corrected nominal association should be treated as <b>exploratory</b>.
+</div>',
+  ivw$OR, ivw$LCI, ivw$UCI, fmt_p(ivw$pval),
+  fmt_p(het |> dplyr::filter(method=="IVW") |> dplyr::pull(Q_pval)),
+  fmt_p(pleio$pval),
+  fmt_p(steiger$steiger_pval),
+  fmt_p(presso_global_p),
+  fmt_p(presso_distort_p)
+))
+
+cat('<div class="cards">')
+cat(sprintf('<div class="cardx"><div class="k">Instruments</div><div class="v">%d SNPs</div><span class="badge">Ferritin → Delirium</span></div>',
+            ivw$nsnp))
+cat(sprintf('<div class="cardx"><div class="k">Instrument strength %s</div><div class="v">%s</div><div class="k">Mean F-statistic</div></div>',
+            tip("F-statistic gauges instrument strength; a common rule-of-thumb is F ≥ 10. Mean F = 78.76 indicates strong instruments and low risk of weak-IV bias."),
+            fmt_num(mean_F,2)))
+cat(sprintf('<div class="cardx"><div class="k">Heterogeneity %s</div><div class="v">Q p = %s</div><div class="k">Cochran’s Q (IVW)</div></div>',
+            tip("Cochran’s Q tests whether per-SNP ratio estimates vary more than expected by chance; significant Q suggests heterogeneity (often pleiotropy or multiple mechanisms)."),
+            fmt_p(het |> dplyr::filter(method=="IVW") |> dplyr::pull(Q_pval))))
+cat(sprintf('<div class="cardx"><div class="k">Directional pleiotropy %s</div><div class="v">p = %s</div><div class="k">MR-Egger intercept</div></div>',
+            tip("MR-Egger intercept tests unbalanced (directional) horizontal pleiotropy; non-significant intercept suggests no consistent directional bias."),
+            fmt_p(pleio$pval)))
+cat(sprintf('<div class="cardx"><div class="k">Directionality %s</div><div class="v">%s</div><div class="k">Steiger p = %s</div></div>',
+            tip("Steiger compares variance explained in exposure vs outcome; if R²_exposure > R²_outcome, Ferritin → Delirium is supported over reverse."),
+            ifelse(steiger$correct_causal_direction, "Supported", "Uncertain"),
+            fmt_p(steiger$steiger_pval)))
+cat(sprintf('<div class="cardx"><div class="k">Outliers %s</div><div class="v">%d</div><div class="k">Global p = %s; Distortion p = %s</div></div>',
+            tip("MR-PRESSO tests for outlier instruments (global test) and whether removing them significantly changes the estimate (distortion test)."),
+            presso_outlier_n, fmt_p(presso_global_p), fmt_p(presso_distort_p)))
+cat('</div>')
+
+```
+```{r tab1_mr_tables, results="asis"}
+# Table MR-1: main (and robust) estimators
+mr_tbl <- mr_main |>
+  dplyr::transmute(
+    Method = method,
+    `N SNPs` = nsnp,
+    `β (log OR)` = fmt_num(beta, 4),
+    `SE` = fmt_num(se, 4),
+    `OR (95% CI)` = sprintf("%.3f (%.3f–%.3f)", OR, LCI, UCI),
+    `p` = fmt_p(pval)
+  )
+
+cat(dl_btn("Download: MR main table", "data/tab1_mr_main.tsv"))
+cat(kbl_nice(mr_tbl, caption = "Table MR-1. Two-sample MR estimates for ferritin → delirium across estimators."))
+
+# Table MR-2: diagnostics “scoreboard”
+diag_tbl <- tibble::tibble(
+  Test = c(
+    paste0("Instrument strength ", tip("Mean F-statistic summarises strength; a common heuristic is F ≥ 10.")),
+    paste0("Heterogeneity (IVW) ", tip("Cochran’s Q p-value tests whether ratio estimates are heterogeneous.")),
+    paste0("Directional pleiotropy ", tip("MR-Egger intercept p-value tests directional pleiotropy.")),
+    paste0("Directionality (Steiger) ", tip("Steiger supports Ferritin → Delirium if R²_exposure > R²_outcome.")),
+    paste0("Outliers (MR-PRESSO) ", tip("Global test detects outliers; distortion test asks if estimate changes materially after removal.")),
+    "MR-PRESSO outlier-corrected estimate"
+  ),
+  Result = c(
+    sprintf("Mean F = %s", fmt_num(mean_F,2)),
+    sprintf("Q = %s (df=%d), p = %s",
+            fmt_num(het$Q[het$method=="IVW"],2), het$Q_df[het$method=="IVW"], fmt_p(het$Q_pval[het$method=="IVW"])),
+    sprintf("Intercept = %s (SE=%s), p = %s",
+            fmt_num(pleio$egger_intercept,4), fmt_num(pleio$se,4), fmt_p(pleio$pval)),
+    sprintf("R²x = %s; R²y = %s; direction = %s; p = %s",
+            fmt_num(steiger$snp_r2_exposure,6), fmt_num(steiger$snp_r2_outcome,6),
+            ifelse(steiger$correct_causal_direction, "Ferritin → Delirium", "Reverse/uncertain"),
+            fmt_p(steiger$steiger_pval)),
+    sprintf("Global p = %s; Distortion p = %s; outliers = %d",
+            fmt_p(presso_global_p), fmt_p(presso_distort_p), presso_outlier_n),
+    {
+      pc <- presso |> dplyr::filter(analysis=="Outlier-corrected") |> dplyr::slice(1)
+      sprintf("β = %s (SE=%s), OR = %.3f (%.3f–%.3f), p = %s",
+              fmt_num(pc$beta,4), fmt_num(pc$se,4), pc$OR, pc$LCI, pc$UCI, fmt_p(pc$pval))
+    }
+  )
+)
+
+cat(dl_btn("Download: MR heterogeneity", "data/tab1_mr_heterogeneity.tsv"))
+cat(dl_btn("Download: MR pleiotropy", "data/tab1_mr_pleiotropy.tsv"))
+cat(dl_btn("Download: MR Steiger", "data/tab1_mr_steiger.tsv"))
+cat(dl_btn("Download: MR-PRESSO", "data/tab1_mr_presso.tsv"))
+
+cat(kbl_nice(diag_tbl, caption = "Table MR-2. Diagnostic summary for strength, heterogeneity, pleiotropy, directionality, and outliers."))
+```
+
+
+```{r tab1_forest_plot}
+# Forest plot uses the exact values in mr_main + MR-PRESSO outlier-corrected
+forest_df <- dplyr::bind_rows(
+  mr_main |> dplyr::select(method, beta, se),
+  presso  |> dplyr::filter(analysis=="Outlier-corrected") |>
+    dplyr::transmute(method="IVW (MR-PRESSO outlier-corrected)", beta=beta, se=se)
+) |>
+  dplyr::rowwise() |>
+  dplyr::mutate(
+    OR  = as.numeric(or_ci(beta, se)["OR"]),
+    LCI = as.numeric(or_ci(beta, se)["LCI"]),
+    UCI = as.numeric(or_ci(beta, se)["UCI"])
+  ) |>
+  dplyr::ungroup() |>
+  dplyr::mutate(
+    method = factor(method, levels = c(
+      "Weighted median",
+      "MR-Egger",
+      "IVW (MR-PRESSO outlier-corrected)",
+      "IVW (multiplicative random effects)"
+    ))
+  )
+
+p_forest <- ggplot(forest_df, aes(x = OR, y = method)) +
+  geom_vline(xintercept = 1, linetype = "dashed", colour = COL$ceil, linewidth = 0.9) +
+  geom_errorbarh(aes(xmin = LCI, xmax = UCI), height = 0.16, colour = COL_FERRITIN, linewidth = 1.0) +
+  geom_point(size = 2.8, colour = COL$grape) +
+  labs(
+    x = "Odds ratio (per SD higher ferritin)",
+    y = NULL
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    panel.grid.minor = element_blank(),
+    panel.grid.major.y = element_blank()
+  )
+
+p_forest
+ggsave(file.path(FIG_DIR, "Figure_MR1_forest_theme.png"), p_forest,
+       width = 7.8, height = 4.2, dpi = 320, bg = "white")
+
+```
+
+
+<div class="figcap">
+  <b>Figure MR1. Causal estimates across MR estimators.</b>
+  Estimates are directionally consistent but imprecise across methods; the primary IVW (random-effects) interval includes the null.
+</div>
+
+<details>
+<summary>Diagnostics (MR)</summary>
+
+```{r tab1_diag_images, results="asis"}
+
+render_fig <- function(title, filename, caption){
+  fp <- file.path(FIG_DIR, filename)
+  if (!file.exists(fp)) {
+    cat(sprintf(
+      "<p><b>Missing figure:</b> <code>%s</code><br/>Expected at: <code>%s</code></p>",
+      filename, fp
+    ))
+    return(invisible(FALSE))
+  }
+
+  # Use repo-relative path for HTML (works on GitHub Pages)
+  src <- sprintf("figures/%s", filename)
+
+  cat(sprintf("<h4>%s</h4>", title))
+  cat(sprintf(
+    "<img src='%s' style='width:100%%; border-radius:16px; border:1px solid %s;'/>",
+    src, COL$platinum
+  ))
+  cat(sprintf(
+    "<div class='figcap'><b>Interpretive caption.</b> %s</div>",
+    caption
+  ))
+
+  invisible(TRUE)
+}
+
+# --- Exact filenames ---
+fn_scatter <- "MR scatter plot (per-SNP effects).png"
+fn_funnel  <- "Funnel plot (per-SNP ratio estimates).png"
+fn_loo     <- "Leave-one-out influence plot.png"
+fn_presso  <- "MR-PRESSO outlier map.png"
+
+render_fig(
+  "Supplementary Figure S-MR1. MR scatter plot",
+  fn_scatter,
+  "Scatter of per-SNP effects (ferritin vs delirium) with estimator lines; approximate alignment of slopes supports method-level consistency in direction."
+)
+
+render_fig(
+  "Supplementary Figure S-MR2. Funnel plot",
+  fn_funnel,
+  "Funnel symmetry provides a qualitative screen for outlier/asymmetry patterns that can reflect pleiotropy or influential instruments."
+)
+
+render_fig(
+  "Supplementary Figure S-MR3. Leave-one-out influence plot",
+  fn_loo,
+  "Stability of the IVW estimate under leave-one-out suggests the inference is not driven by a single SNP; large shifts would indicate sensitivity to specific instruments."
+)
+
+render_fig(
+  "Supplementary Figure S-MR4. MR-PRESSO outlier map",
+  fn_presso,
+  "MR-PRESSO outlier map visualises instruments flagged as outliers; interpretation should be paired with the global outlier test and the distortion test."
+)
+
+```
+
+</details> 
+
+### **SMR/HEIDI**
+
+```{r tab2_smr_load, include=FALSE}
+S1_FN <- "SuppTable_S1_SMR_HEIDI_panel_summary.tsv"
+S2_FN <- "SuppTable_S2_SMR_HEIDI_BF_hits_probe_level.tsv"
+
+S1_PATH <- file.path(DATA_DIR, S1_FN)
+S2_PATH <- file.path(DATA_DIR, S2_FN)
+
+if (!file.exists(S1_PATH)) stop("Missing file: ", S1_PATH, "\nCopy it into docs/data/ and knit again.")
+if (!file.exists(S2_PATH)) stop("Missing file: ", S2_PATH, "\nCopy it into docs/data/ and knit again.")
+
+S1 <- data.table::fread(S1_PATH)
+S2 <- data.table::fread(S2_PATH)
+
+# ---- Yields (exact; from S2) ----
+yields <- S2[, .(
+  records = .N,
+  unique_probes = data.table::uniqueN(probe_id),
+  unique_genes  = data.table::uniqueN(gene)
+), by = trait]
+
+f_y <- yields[trait == "Ferritin"]
+d_y <- yields[trait == "Delirium"]
+
+# ---- Strict overlap (genes) ----
+overlap_genes <- intersect(
+  unique(S2[trait == "Ferritin", gene]),
+  unique(S2[trait == "Delirium", gene])
+)
+
+# ---- Convenience subsets ----
+S2_ferr <- S2[trait == "Ferritin"]
+S2_del  <- S2[trait == "Delirium"]
+
+# ---- Heatmap data: tissue × omics yields (sum passing probe records) ----
+heat_df <- S1[, .(n_pass_total = sum(n_pass_probes, na.rm = TRUE)), by = .(trait, tissue, omics)]
+heat_df[, tissue := factor(tissue, levels = c("Blood","Brain","Pituitary","Liver","Spleen","KidneyCortex"))]
+heat_df[, omics  := factor(omics,  levels = c("eQTL","mQTL","sQTL","pQTL"))]
+
+# ---- Ferritin: top panels by passing probes (from S1) ----
+top_panels_ferr <- S1[trait == "Ferritin"][order(-n_pass_probes)][1:12]
+top_panels_ferr[, panel_label := paste(tissue, omics, qtl_name, sep = " | ")]
+
+# ---- Ferritin: top genes by best (min) p_SMR per gene (from S2) ----
+top_genes_ferr <- S2_ferr[, .(min_p_smr = min(p_smr, na.rm = TRUE)), by = gene][order(min_p_smr)][1:15]
+top_genes_ferr[, neglog10 := -log10(min_p_smr)]
+top_genes_ferr[, gene := factor(gene, levels = rev(gene))]
+
+# ---- Delirium: best per gene (mini-bar; from S2) ----
+del_gene_best <- S2_del[, .(min_p_smr = min(p_smr, na.rm = TRUE)), by = gene][order(min_p_smr)]
+del_gene_best[, neglog10 := -log10(min_p_smr)]
+del_gene_best[, gene := factor(gene, levels = gene)]
+
+# ---- TABLES ----
+
+# Table 2-1: Delirium retained hits (all rows)
+tbl_delir_hits <- S2_del[order(p_smr)][, .(
+  gene, tissue, omics, qtl_name, probe_id,
+  chr, pos, top_snp,
+  b_smr, se_smr, p_smr,
+  p_heidi, nsnp_heidi,
+  p_bonf_panel, M_panel
+)]
+
+# Table 2-2: Strict overlap (APOE only; trait-specific rows)
+tbl_overlap <- S2[gene %chin% overlap_genes][order(trait, p_smr)][, .(
+  trait, gene, tissue, omics, qtl_name, probe_id,
+  chr, pos, top_snp,
+  b_smr, se_smr, p_smr,
+  p_heidi, nsnp_heidi,
+  p_bonf_panel, M_panel
+)]
+
+# Table 2-3: Tissue × omics yields (wide)
+tbl_yield_matrix <- data.table::dcast(
+  heat_df, tissue + omics ~ trait,
+  value.var = "n_pass_total", fill = 0
+)[order(tissue, omics)]
+
+# Table 2-4: Full S1
+tbl_S1_full <- S1[order(trait, tissue, omics, qtl_name)]
+
+# Table 2-5: Full S2
+tbl_S2_full <- S2[order(trait, p_smr)]
+
+# Table 2-6: Ferritin top hits (probe-level preview; smallest p_SMR)
+tbl_ferr_top_hits <- S2_ferr[order(p_smr)][1:15, .(
+  gene, tissue, omics, qtl_name, probe_id,
+  chr, pos, top_snp,
+  b_smr, se_smr, p_smr,
+  p_heidi, nsnp_heidi
+)]
+```
+
+```{r tab2_smr_header, results="asis"}
+# Panels with ≥1 passing hit (from S1)
+n_panels_ferr_any <- S1[trait=="Ferritin", sum(n_pass_probes > 0, na.rm=TRUE)]
+n_panels_del_any  <- S1[trait=="Delirium", sum(n_pass_probes > 0, na.rm=TRUE)]
+
+# Callout narrative (compact)
+cat(sprintf(
+  '<div class="callout">
+  <b>SMR/HEIDI highlights.</b>
+  Across 43 cis-QTL panels per trait (tissues: Blood, Brain, Pituitary, Liver, Spleen, KidneyCortex; omics: eQTL/mQTL/sQTL/pQTL),
+  Ferritin shows a broad cis-mediated architecture, whereas Delirium retains sparse signals concentrated in a few panels.
+  Under strict Bonferroni+HEIDI (panel-wise Bonferroni + p<sub>HEIDI</sub> ≥ 0.01 + n<sub>SNP,HEIDI</sub> ≥ 3),
+  Ferritin retains <b>%d</b> probe–panel records (<b>%d</b> unique probes; <b>%d</b> genes),
+  Delirium retains <b>%d</b> probe–panel records (<b>%d</b> unique probes; <b>%d</b> genes),
+  and the strict cross-trait intersection is <b>%s</b>.
+  </div>',
+  f_y$records, f_y$unique_probes, f_y$unique_genes,
+  d_y$records, d_y$unique_probes, d_y$unique_genes,
+  ifelse(length(overlap_genes)==0, "none", paste(overlap_genes, collapse=", "))
+))
+
+# Cards
+cat('<div class="cards">')
+
+cat(sprintf(
+  '<div class="cardx"><div class="k">Ferritin retained</div><div class="v">%d records</div><div class="k">%d probes • %d genes</div></div>',
+  f_y$records, f_y$unique_probes, f_y$unique_genes
+))
+
+cat(sprintf(
+  '<div class="cardx"><div class="k">Delirium retained</div><div class="v">%d records</div><div class="k">%d probes • %d genes</div></div>',
+  d_y$records, d_y$unique_probes, d_y$unique_genes
+))
+
+cat(sprintf(
+  '<div class="cardx"><div class="k">Strict overlap</div><div class="v">%s</div><div class="k">Shared genes (BF+HEIDI)</div></div>',
+  ifelse(length(overlap_genes)==0, "0", paste(overlap_genes, collapse=", "))
+))
+
+cat(sprintf(
+  '<div class="cardx"><div class="k">Ferritin panels w/ hits</div><div class="v">%d / 43</div><div class="k">Any BF+HEIDI pass</div></div>',
+  n_panels_ferr_any
+))
+
+cat(sprintf(
+  '<div class="cardx"><div class="k">Delirium panels w/ hits</div><div class="v">%d / 43</div><div class="k">Any BF+HEIDI pass</div></div>',
+  n_panels_del_any
+))
+
+cat('</div>')
+
+# Download buttons for the two TSVs
+cat('<div style="margin-top:10px; margin-bottom:14px;">')
+cat(dl_btn("Download: Supp Table S1 (panel summary)", paste0("data/", S1_FN)))
+cat(" ")
+cat(dl_btn("Download: Supp Table S2 (BF+HEIDI probe-level hits)", paste0("data/", S2_FN)))
+cat('</div>')
+```
+
+
+```{r tab2_fig_heatmap}
+p_heat <- ggplot(heat_df, aes(x = omics, y = tissue, fill = n_pass_total)) +
+  geom_tile(color = COL$platinum, linewidth = 0.6) +
+  facet_wrap(~trait, nrow = 1) +
+  scale_fill_gradient(low = COL$platinum, high = COL_FERRITIN) +
+  labs(x = NULL, y = NULL, fill = "# passing probes") +
+  theme_minimal(base_size = 12) +
+  theme(
+    panel.grid = element_blank(),
+    strip.text = element_text(color = COL$grape, face = "bold")
+  )
+
+p_heat
+ggsave(file.path(FIG_DIR, "Figure_SMR_heatmap_tissue_omics.png"), p_heat,
+       width = 9.4, height = 3.8, dpi = 320, bg = "white")
+
+```
+
+<div class="figcap"><b>SMR Figure 1.</b> Tissue × omics yield heatmap (sum of BF+HEIDI passing probes across panels), contrasting Ferritin’s broad cis-mediated signal landscape with Delirium’s sparse retained signals.</div> 
+
+```{r tab2_fig_top_panels_ferr}
+p_panels <- ggplot(top_panels_ferr, aes(x = reorder(panel_label, n_pass_probes), y = n_pass_probes)) +
+  geom_col(fill = COL_FERRITIN, alpha = 0.92) +
+  coord_flip() +
+  labs(x = NULL, y = "# passing probes") +
+  theme_minimal(base_size = 12) +
+  theme(panel.grid.minor = element_blank())
+
+p_panels
+ggsave(file.path(FIG_DIR, "Figure_SMR_Ferritin_top_panels.png"), p_panels,
+       width = 9.2, height = 4.6, dpi = 320, bg = "white")
+
+```
+
+<div class="figcap"><b>SMR Figure 2.</b> Highest-yield Ferritin panels by number of BF+HEIDI passing probes, highlighting where cis-mediated associations are most concentrated.</div>
+
+```{r tab2_fig_top_genes_ferr}
+p_genes <- ggplot(top_genes_ferr, aes(x = gene, y = neglog10)) +
+  geom_segment(aes(xend = gene, y = 0, yend = neglog10), color = COL$ceil, linewidth = 1.1) +
+  geom_point(size = 3.1, color = COL$grape) +
+  coord_flip() +
+  labs(x = NULL, y = expression(-log[10](min(p[SMR])))) +
+  theme_minimal(base_size = 12) +
+  theme(panel.grid.minor = element_blank())
+
+p_genes
+ggsave(file.path(FIG_DIR, "Figure_SMR_Ferritin_top_genes_lollipop.png"), p_genes,
+       width = 8.2, height = 4.6, dpi = 320, bg = "white")
+
+```
+
+<div class="figcap"><b>SMR Figure 3.</b> Top Ferritin genes ranked by the most significant SMR association per gene (minimum p<sub>SMR</sub> across BF+HEIDI passing records).</div> 
+
+```{r tab2_fig_delir_locus}
+p_del <- ggplot(del_gene_best, aes(x = gene, y = neglog10)) +
+  geom_col(fill = COL_DELIRIUM, alpha = 0.90) +
+  labs(x = NULL, y = expression(-log[10](min(p[SMR])))) +
+  theme_minimal(base_size = 12) +
+  theme(panel.grid.minor = element_blank())
+
+p_del
+ggsave(file.path(FIG_DIR, "Figure_SMR_Delirium_locus_minibar.png"), p_del,
+       width = 6.6, height = 3.6, dpi = 320, bg = "white")
+
+```
+
+<div class="figcap"><b>SMR Figure 4.</b> Delirium retained genes (best p<sub>SMR</sub> per gene) show a sparse profile dominated by the 19q13 locus signals.</div>
+
+```{r tab2_tables_main, results="asis"}
+# ---------
+# Table 2-1: Delirium retained hits (all rows)
+# ---------
+t1 <- data.table::copy(tbl_delir_hits)
+t1[, b_smr := fmt_num(as.numeric(b_smr), 6)]
+t1[, se_smr := fmt_num(as.numeric(se_smr), 6)]
+t1[, p_smr := fmt_e(as.numeric(p_smr), 2)]
+t1[, p_heidi := fmt_p(as.numeric(p_heidi))]
+t1[, p_bonf_panel := fmt_e(as.numeric(p_bonf_panel), 2)]
+cat('<div class="scroll-x">')
+cat(kbl_nice(t1, caption = "Table 2-1. Delirium BF+HEIDI-retained SMR hits (all passing records)."))
+cat('</div>')
+# ---------
+# Table 2-2: Strict cross-trait overlap (shared genes; APOE only here)
+# ---------
+t2 <- data.table::copy(tbl_overlap)
+t2[, b_smr := fmt_num(as.numeric(b_smr), 6)]
+t2[, se_smr := fmt_num(as.numeric(se_smr), 6)]
+t2[, p_smr := fmt_e(as.numeric(p_smr), 2)]
+t2[, p_heidi := fmt_p(as.numeric(p_heidi))]
+t2[, p_bonf_panel := fmt_e(as.numeric(p_bonf_panel), 2)]
+cat('<div class="scroll-x">')
+cat(kbl_nice(t2, caption = "Table 2-2. Strict cross-trait overlap under BF+HEIDI (shared genes)."))
+cat('</div>')
+# ---------
+# Table 2-3: Tissue × omics yields (aggregated)
+# ---------
+t3 <- data.table::copy(tbl_yield_matrix)
+cat(kbl_nice(t3, caption = "Table 2-3. Sum of BF+HEIDI passing probes by tissue × omics (aggregated across panels)."))
+```
+
+<details>
+<summary>Table 2-4 (Supp): Supp Table S1 — panel-level summary (all 86 panels)</summary>
+
+```{r tab2_table_S1_full, results="asis"}
+tS1 <- data.table::copy(tbl_S1_full)
+tS1[, p_bonf_panel := fmt_e(as.numeric(p_bonf_panel), 2)]
+tS1[, min_p_smr_pass := fmt_e(as.numeric(min_p_smr_pass), 2)]
+cat('<div class="scroll-xy">')
+cat(kbl_nice(tS1, caption = "Table 2-4 (Supp). Supp Table S1 — SMR/HEIDI panel summary."))
+cat('</div>')
+```
+
+</details> 
+
+<details> 
+<summary>Table 2-5 (Supp): Supp Table S2 — BF+HEIDI passing hits (probe level)</summary>
+
+```{r tab2_table_S2_full, results="asis"}
+tS2 <- data.table::copy(tbl_S2_full)
+tS2[, b_smr := fmt_num(as.numeric(b_smr), 6)]
+tS2[, se_smr := fmt_num(as.numeric(se_smr), 6)]
+tS2[, p_smr := fmt_e(as.numeric(p_smr), 2)]
+tS2[, p_heidi := fmt_p(as.numeric(p_heidi))]
+tS2[, p_bonf_panel := fmt_e(as.numeric(p_bonf_panel), 2)]
+cat('<div class="scroll-xy">')
+cat(kbl_nice(tS2, caption = "Table 2-5 (Supp). Supp Table S2 — Bonferroni+HEIDI retained SMR hits."))
+cat('</div>')
+```
+
+</details> 
+
+<details> 
+<summary>Table 2-6 (preview): Ferritin top BF+HEIDI passing records (smallest p<sub>SMR</sub>)</summary>
+
+```{r tab2_table_6_full, results="asis"}
+t6 <- data.table::copy(tbl_ferr_top_hits)
+t6[, b_smr := fmt_num(as.numeric(b_smr), 6)]
+t6[, se_smr := fmt_num(as.numeric(se_smr), 6)]
+t6[, p_smr := fmt_e(as.numeric(p_smr), 2)]
+t6[, p_heidi := fmt_p(as.numeric(p_heidi))]
+cat('<div class="scroll-xy">')
+cat(kbl_nice(t6, caption = "Table 2-6 (preview). Top Ferritin BF+HEIDI passing records ranked by p_SMR."))
+cat('</div>')
+
+``` 
+
+</details>
+
+### **Coloc & SuSiE**
+
+<div class="callout">
+  <b>Colocalisation</b> evaluates whether two association signals within a region are consistent with a
+  <b>single shared causal variant</b> (high <b>PP.H4</b>) or <b>distinct variants</b> (high <b>PP.H3</b>)
+  `r tip("PP.H4 is the posterior probability that both traits share one causal variant in the tested window; PP.H3 indicates both traits have signals but are driven by different causal variants.")`.
+</div>
+
+```{r tab3_coloc_load_parse, include=FALSE}
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(tidyr)
+  library(stringr)
+  library(ggplot2)
+  library(knitr)
+  library(kableExtra)
+})
+
+# ---------------------------
+# Required inputs (must live in docs/data/)
+# ---------------------------
+RUNLIST_MD <- file.path(DATA_DIR, "coloc_runlist_available_panels.md")
+SUSIE_MD   <- file.path(DATA_DIR, "Susie; process and results.md")
+
+if (!file.exists(RUNLIST_MD)) stop("Missing: ", RUNLIST_MD)
+if (!file.exists(SUSIE_MD))   stop("Missing: ", SUSIE_MD)
+
+run_lines <- readLines(RUNLIST_MD, warn = FALSE, encoding = "UTF-8")
+sus_lines <- readLines(SUSIE_MD,   warn = FALSE, encoding = "UTF-8")
+
+run_txt <- paste(run_lines, collapse = "\n")
+sus_txt <- paste(sus_lines, collapse = "\n")
+
+# ---------------------------
+# Helpers
+# ---------------------------
+
+# Unicode sci-notation -> numeric
+# Examples handled:
+#   6.13×10⁻¹⁹⁸  -> 6.13e-198
+#   1.28e−71      -> 1.28e-71   (unicode minus)
+#   ~1.00         -> 1.00
+sci_unicode_to_numeric <- function(x){
+  if (is.na(x) || !nzchar(x)) return(NA_real_)
+  x <- trimws(as.character(x))
+  x <- gsub(",", "", x, fixed = TRUE)
+  x <- gsub("≈", "", x, fixed = TRUE)
+  x <- gsub("~", "", x, fixed = TRUE)
+
+  # normalize unicode minus/dashes
+  x <- gsub("\u2212", "-", x, fixed = TRUE)  # minus
+  x <- gsub("\u2013", "-", x, fixed = TRUE)  # en dash
+  x <- gsub("\u2014", "-", x, fixed = TRUE)  # em dash
+
+  # ×10^ -> e
+  x <- gsub("×10", "e", x, fixed = TRUE)
+  x <- gsub("x10", "e", x, fixed = TRUE)
+
+  # superscripts
+  x <- gsub("⁻", "-", x, fixed = TRUE)
+  sup <- c("⁰","¹","²","³","⁴","⁵","⁶","⁷","⁸","⁹")
+  for (i in seq_along(sup)) x <- gsub(sup[i], as.character(i-1), x, fixed = TRUE)
+
+  x <- gsub("%", "", x, fixed = TRUE)
+
+  # strip anything not part of numeric scientific notation (SAFE char class)
+  x2 <- gsub("[^0-9eE+\\.\\-]", "", x, perl = TRUE)
+  suppressWarnings(as.numeric(x2))
+}
+
+grab1 <- function(pattern, text, default = NA_character_){
+  m <- stringr::str_match(text, pattern)
+  if (length(m) == 0 || nrow(m) == 0) return(default)
+  if (ncol(m) < 2) {
+    if (is.na(m[1,1])) default else m[1,1]
+  } else {
+    if (is.na(m[1,2])) default else m[1,2]
+  }
+}
+grab1_num <- function(pattern, text, default = NA_real_){
+  x <- grab1(pattern, text, default = NA_character_)
+  sci_unicode_to_numeric(x)
+}
+grab1_int_commas <- function(pattern, text, default = NA_integer_){
+  x <- grab1(pattern, text, default = NA_character_)
+  if (is.na(x) || !nzchar(x)) return(default)
+  x <- gsub(",", "", x, fixed = TRUE)
+  suppressWarnings(as.integer(x))
+}
+
+# Extract a text block between two markers (regex, dotall)
+block_between <- function(text, start_pat, end_pat = NULL){
+  if (is.null(end_pat)) {
+    out <- stringr::str_extract(text, stringr::regex(paste0("(?s)", start_pat, ".*\\Z")))
+  } else {
+    out <- stringr::str_extract(text, stringr::regex(paste0("(?s)", start_pat, ".*?(?=", end_pat, ")")))
+  }
+  if (is.na(out) || !nzchar(out)) NA_character_ else out
+}
+
+# Parse a markdown pipe table (| a | b |) into a data.frame
+parse_md_pipe_table <- function(tbl_lines){
+  tbl_lines <- tbl_lines[grepl("^\\|", tbl_lines)]
+  if (length(tbl_lines) < 3) return(NULL)
+
+  split_row <- function(x){
+    parts <- strsplit(gsub("^\\|\\s*|\\s*\\|\\s*$", "", x), "\\|", fixed = FALSE)[[1]]
+    trimws(parts)
+  }
+  header <- split_row(tbl_lines[1])
+  rows   <- lapply(tbl_lines[-c(1,2)], split_row) # drop separator row
+
+  rows <- lapply(rows, function(r){
+    if (length(r) < length(header)) c(r, rep(NA_character_, length(header)-length(r))) else r[seq_along(header)]
+  })
+
+  df <- as.data.frame(do.call(rbind, rows), stringsAsFactors = FALSE)
+  names(df) <- header
+  df
+}
+
+# Find and parse the first pipe-table after a line matching `pattern`
+table_after <- function(lines, pattern){
+  i <- which(grepl(pattern, lines))[1]
+  if (is.na(i)) return(NULL)
+  j <- i + 1
+  while (j <= length(lines) && trimws(lines[j]) == "") j <- j + 1
+  tbl <- character(0)
+  while (j <= length(lines) && grepl("^\\|", lines[j])) {
+    tbl <- c(tbl, lines[j])
+    j <- j + 1
+  }
+  parse_md_pipe_table(tbl)
+}
+
+# Best-effort numeric conversion for df columns that look numeric
+numify_df <- function(df){
+  if (is.null(df)) return(df)
+  for (nm in names(df)) {
+    x <- df[[nm]]
+    x2 <- gsub(",", "", x, fixed = TRUE)
+    ok <- grepl("^[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?$", x2) | is.na(x2) | x2=="" 
+    if (all(ok)) df[[nm]] <- suppressWarnings(as.numeric(x2))
+  }
+  df
+}
+
+# ---------------------------
+# 1) coloc.abf key results (from runlist md)
+# ---------------------------
+
+# Ferritin × APOE pQTL (primary)
+sec_f_apoe <- block_between(
+  run_txt,
+  "### -> Ferritin-pQTL",
+  "(\\n### -> Ferritin-|\\nDelirium-pQTL|\\Z)"
+)
+f_apoe_nsnps <- grab1_int_commas("Overlapping SNPs tested:\\s*([0-9,]+)", sec_f_apoe)
+f_apoe_h0 <- grab1_num("PP\\.H0[^:]*:\\s*([0-9][^\\s\\*\\)]+)", sec_f_apoe)
+f_apoe_h1 <- grab1_num("PP\\.H1[^:]*:\\s*([0-9][^\\s\\*\\)]+)", sec_f_apoe)
+f_apoe_h2 <- grab1_num("PP\\.H2[^:]*:\\s*([0-9][^\\s\\*\\)]+)", sec_f_apoe)
+f_apoe_h3 <- grab1_num("PP\\.H3[^:]*:\\s*([0-9][^\\s\\*\\)]+)", sec_f_apoe)
+f_apoe_h4 <- grab1_num("PP\\.H4[^:]*:\\s*([0-9][^\\s\\*\\)]+)", sec_f_apoe)
+
+# Ferritin × SLC11A2 eQTLGen row (percentages table row)
+slc_line <- run_lines[grepl("^\\|\\s*SLC11A2\\s*\\|\\s*eQTLGen", run_lines)][1]
+slc_vals <- if (!is.na(slc_line)) strsplit(gsub("^\\|\\s*|\\s*\\|\\s*$", "", slc_line), "\\|")[[1]] else rep(NA_character_, 8)
+slc_vals <- trimws(slc_vals)
+# expected: Gene | Panel | nsnps | H0% | H1% | H2% | H3% | H4%
+slc_nsnps <- suppressWarnings(as.integer(slc_vals[3]))
+slc_h0 <- suppressWarnings(as.numeric(gsub("%","", slc_vals[4], fixed=TRUE)) / 100)
+slc_h1 <- suppressWarnings(as.numeric(gsub("%","", slc_vals[5], fixed=TRUE)) / 100)
+slc_h2 <- suppressWarnings(as.numeric(gsub("%","", slc_vals[6], fixed=TRUE)) / 100)
+slc_h3 <- suppressWarnings(as.numeric(gsub("%","", slc_vals[7], fixed=TRUE)) / 100)
+slc_h4 <- suppressWarnings(as.numeric(gsub("%","", slc_vals[8], fixed=TRUE)) / 100)
+
+# Ferritin × TF Liver sQTL (abf prose)
+sec_tf <- block_between(run_txt, "#### 🧬For TF Gene🧬", "(\\n### ->|\\nDelirium-pQTL|\\Z)")
+tf_nsnps <- grab1_int_commas("nsnps\\s*=\\s*(\\d+)", sec_tf)
+tf_h0 <- grab1_num("PP\\.H0\\.abf\\s*=\\s*([0-9][^\\s\\)]+)", sec_tf)
+tf_h1 <- grab1_num("PP\\.H1\\.abf\\s*=\\s*([0-9][^\\s\\)]+)", sec_tf)
+tf_h2 <- grab1_num("PP\\.H2\\.abf\\s*=\\s*([0-9][^\\s\\)]+)", sec_tf)
+tf_h3 <- grab1_num("PP\\.H3\\.abf\\s*=\\s*([0-9][^\\s\\)]+)", sec_tf)
+tf_h4 <- grab1_num("PP\\.H4\\.abf\\s*=\\s*([0-9][^\\s\\)]+)", sec_tf)
+
+# Delirium × APOE pQTL (primary bullets)
+sec_d_apoe <- block_between(run_txt, "Delirium-pQTL\\s*\\n#### 🧬For APOE Gene🧬", "(\\nSecondary panels coloc:|\\Z)")
+d_apoe_nsnps <- grab1_int_commas("SNPs tested:\\*\\*\\s*([0-9,]+)\\*\\*", sec_d_apoe)
+d_apoe_h0 <- grab1_num("PP\\.H0[^:]*:\\*\\*\\s*([0-9][^\\s\\*\\)]+)", sec_d_apoe)
+d_apoe_h1 <- grab1_num("PP\\.H1[^:]*:\\*\\*\\s*([0-9][^\\s\\*\\)]+)", sec_d_apoe)
+d_apoe_h2 <- grab1_num("PP\\.H2[^:]*:\\*\\*\\s*([0-9][^\\s\\*\\)]+)", sec_d_apoe)
+d_apoe_h3 <- grab1_num("PP\\.H3[^:]*:\\*\\*\\s*~?([0-9][^\\s\\*\\)]+)", sec_d_apoe)
+d_apoe_h4 <- grab1_num("PP\\.H4[^:]*:\\*\\*\\s*([0-9][^\\s\\*\\)]+)", sec_d_apoe)
+
+# Delirium × APOE sQTL proxies (Brain Cortex and BA9) — optional but we will display if found
+sec_d_apoe_cortex <- block_between(run_txt, "Delirium × GTEx v10 sQTL \\(Brain Cortex\\) for APOE", "(\\n2\\.|\\Z)")
+dc_nsnps <- grab1_int_commas("SNPs used:\\*\\*\\s*(\\d+)\\*\\*", sec_d_apoe_cortex)
+dc_h0 <- grab1_num("PP\\.H0\\s*=\\s*([0-9][^\\s\\*\\)]+)", sec_d_apoe_cortex)
+dc_h1 <- grab1_num("PP\\.H1\\s*=\\s*([0-9][^\\s\\*\\)]+)", sec_d_apoe_cortex)
+dc_h2 <- grab1_num("PP\\.H2\\s*=\\s*([0-9][^\\s\\*\\)]+)", sec_d_apoe_cortex)
+dc_h3 <- grab1_num("PP\\.H3\\s*=\\s*([0-9][^\\s\\*\\)]+)", sec_d_apoe_cortex)
+dc_h4 <- grab1_num("PP\\.H4\\s*=\\s*([0-9][^\\s\\*\\)]+)", sec_d_apoe_cortex)
+
+sec_d_apoe_ba9 <- block_between(run_txt, "Delirium × GTEx v10 sQTL \\(Brain BA9\\) for APOE", "(\\n3\\.|\\Z)")
+db_nsnps <- grab1_int_commas("SNPs overlapping:\\*\\*\\s*(\\d+)\\*\\*", sec_d_apoe_ba9)
+db_h0 <- grab1_num("PP\\.H0[^:]*:\\s*([0-9][^\\s\\*\\)]+)", sec_d_apoe_ba9)
+db_h1 <- grab1_num("PP\\.H1[^:]*:\\s*([0-9][^\\s\\*\\)]+)", sec_d_apoe_ba9)
+db_h2 <- grab1_num("PP\\.H2[^:]*:\\s*([0-9][^\\s\\*\\)]+)", sec_d_apoe_ba9)
+db_h3 <- grab1_num("PP\\.H3[^:]*:\\s*~?([0-9][^\\s\\*\\)]+)", sec_d_apoe_ba9)
+db_h4 <- grab1_num("PP\\.H4[^:]*:\\s*([0-9][^\\s\\*\\)]+)", sec_d_apoe_ba9)
+
+# Delirium × CEACAM19 Cortex eQTL tables (already in runlist as pipe tables)
+ce_sum   <- numify_df(table_after(run_lines, "Delirium × CEACAM19 .*— coloc summary"))
+ce_top   <- numify_df(table_after(run_lines, "Top SNPs by PP\\.H4 \\(Delirium × CEACAM19, Cortex v8\\)"))
+ce_lead  <- numify_df(table_after(run_lines, "Lead SNP details \\(aligned by chr:pos key\\)"))
+
+# If summary exists, pick key numbers
+ce_nsnps <- if (!is.null(ce_sum) && "nsnps" %in% names(ce_sum)) ce_sum$nsnps[1] else NA_real_
+ce_h0 <- if (!is.null(ce_sum)) ce_sum[[grep("PP\\.H0", names(ce_sum), value=TRUE)[1]]][1] else NA_real_
+ce_h1 <- if (!is.null(ce_sum)) ce_sum[[grep("PP\\.H1", names(ce_sum), value=TRUE)[1]]][1] else NA_real_
+ce_h2 <- if (!is.null(ce_sum)) ce_sum[[grep("PP\\.H2", names(ce_sum), value=TRUE)[1]]][1] else NA_real_
+ce_h3 <- if (!is.null(ce_sum)) ce_sum[[grep("PP\\.H3", names(ce_sum), value=TRUE)[1]]][1] else NA_real_
+ce_h4 <- if (!is.null(ce_sum)) ce_sum[[grep("PP\\.H4", names(ce_sum), value=TRUE)[1]]][1] else NA_real_
+
+# Build a clean "key coloc table"
+df_coloc_key <- tibble::tibble(
+  GWAS_trait = c("Ferritin","Ferritin","Ferritin","Delirium","Delirium","Delirium","Delirium"),
+  QTL_or_proxy = c(
+    "APOE pQTL (prot-a-131)",
+    "SLC11A2 eQTLGen (WB)",
+    "TF sQTL (Liver, GTEx v10)",
+    "APOE pQTL (prot-a-131)",
+    "APOE sQTL (Brain Cortex, GTEx v10)",
+    "APOE sQTL (Brain BA9, GTEx v10)",
+    "CEACAM19 eQTL (Cortex v8)"
+  ),
+  nsnps = c(f_apoe_nsnps, slc_nsnps, tf_nsnps, d_apoe_nsnps, dc_nsnps, db_nsnps, ce_nsnps),
+  PP_H3 = c(f_apoe_h3, slc_h3, tf_h3, d_apoe_h3, dc_h3, db_h3, ce_h3),
+  PP_H4 = c(f_apoe_h4, slc_h4, tf_h4, d_apoe_h4, dc_h4, db_h4, ce_h4)
+) %>%
+  mutate(
+    inference = case_when(
+      is.na(PP_H4) ~ "—",
+      PP_H4 >= 0.80 ~ "Shared (H4 high)",
+      PP_H3 >= 0.80 ~ "Distinct (H3 high)",
+      TRUE ~ "Ambiguous / mixed"
+    )
+  )
+
+# ---------------------------
+# 2) SuSiE results (from susie md) — parse tables where available
+# ---------------------------
+
+# Ferritin ↔ APOE pQTL: coloc.susie summary table
+susie_pairs <- numify_df(table_after(sus_lines, "coloc\\.susie summary \\(sorted by PP\\.H4\\)"))
+apoe_pqtl_comp <- numify_df(table_after(sus_lines, "APOE pQTL components"))
+ferr_comp     <- numify_df(table_after(sus_lines, "Ferritin components"))
+
+# Delirium ↔ APOE pQTL summary (credible sets + leads)
+sec_sus_del_apoe <- block_between(sus_txt, "SuSiE–coloc\\s*run for\\s*\\*\\*Delirium \\(GWAS\\)\\*\\* vs \\*\\*APOE pQTL\\*\\*", "(\\n### 2\\.|\\n### 6\\.|\\n### 7\\.|\\Z)")
+
+del_cs_n  <- grab1_int_commas("Delirium:\\*\\*\\s*(\\d+)\\*\\* credible sets", sec_sus_del_apoe)
+pqtl_cs_n <- grab1_int_commas("APOE pQTL:\\*\\*\\s*(\\d+)\\*\\* credible sets", sec_sus_del_apoe)
+
+del_leads <- grab1("Delirium:.*?Leads:\\s*([^\\.\\n]+)", sec_sus_del_apoe, default = "")
+pqtl_leads <- grab1("APOE pQTL:.*?Leads:\\s*([^\\.\\n]+)", sec_sus_del_apoe, default = "")
+
+max_pp_shared <- grab1_num("max\\s*PP_shared[^0-9]*([0-9][^\\s\\)]+)", sus_txt)
+
+df_sus_del_apoe <- tibble::tibble(
+  comparison = "Delirium GWAS × APOE pQTL (SuSiE)",
+  delirium_CS = del_cs_n,
+  delirium_leads = del_leads,
+  pqtl_CS = pqtl_cs_n,
+  pqtl_leads = pqtl_leads,
+  max_PP_shared = max_pp_shared
+)
+
+# ---------------------------
+# 3) Figures
+# ---------------------------
+
+# PP.H4 bar plot across key tests
+df_plot <- df_coloc_key %>%
+  mutate(
+    PP_H4_plot = ifelse(is.na(PP_H4), NA_real_, PP_H4),
+    label = paste0(GWAS_trait, " × ", QTL_or_proxy),
+    fill_col = ifelse(GWAS_trait=="Ferritin", COL_FERRITIN, COL_DELIRIUM)
+  )
+
+p_pph4 <- ggplot(df_plot %>% filter(!is.na(PP_H4_plot)),
+                 aes(x = reorder(label, PP_H4_plot), y = PP_H4_plot, fill = GWAS_trait)) +
+  geom_col(width = 0.75, alpha = 0.95) +
+  coord_flip() +
+  geom_hline(yintercept = 0.80, linetype = "dashed", color = COL$grape) +
+  scale_fill_manual(values = c("Ferritin" = COL_FERRITIN, "Delirium" = COL_DELIRIUM)) +
+  scale_y_continuous(labels = function(x) paste0(round(100*x), "%"), limits = c(0,1)) +
+  labs(x = NULL, y = "PP.H4 (shared causal variant)", fill = NULL) +
+  theme_minimal(base_size = 12) +
+  theme(
+    legend.position = "top",
+    panel.grid.minor = element_blank(),
+    axis.text.y = element_text(size = 10)
+  )
+
+# CEACAM19 per-SNP PP.H4 plot (if table exists)
+p_ce_pph4 <- NULL
+if (!is.null(ce_top) && all(c("snp","PP.H4") %in% names(ce_top))) {
+  p_ce_pph4 <- ggplot(ce_top, aes(x = reorder(snp, `PP.H4`), y = `PP.H4`)) +
+    geom_col(fill = COL_DELIRIUM, alpha = 0.95, width = 0.7) +
+    coord_flip() +
+    scale_y_continuous(labels = function(x) paste0(round(100*x), "%"), limits = c(0,1)) +
+    labs(x = NULL, y = "Per-SNP PP.H4", title = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(panel.grid.minor = element_blank())
+}
+
+# SuSiE heatmap of component pair PP.H4 (Ferritin × APOE pQTL) if table exists
+p_susie_heat <- NULL
+if (!is.null(susie_pairs) && all(c("idx1","idx2","PP.H4.abf") %in% names(susie_pairs))) {
+  p_susie_heat <- ggplot(susie_pairs, aes(x = factor(idx1), y = factor(idx2), fill = `PP.H4.abf`)) +
+    geom_tile(color = COL$platinum) +
+    scale_fill_gradient(low = COL$platinum, high = COL_FERRITIN) +
+    labs(x = "Ferritin component (idx1)", y = "pQTL component (idx2)", fill = "PP.H4") +
+    theme_minimal(base_size = 12) +
+    theme(panel.grid = element_blank())
+}
+```
+
+```{r tab3,  results="asis"}
+# ---------------------------
+
+# Executive KPI cards (match Tab1/2 style)
+
+# ---------------------------
+
+n_tests <- nrow(df_coloc_key)
+n_shared <- sum(df_coloc_key$PP_H4 >= 0.80, na.rm = TRUE)
+n_distinct <- sum(df_coloc_key$PP_H3 >= 0.80, na.rm = TRUE)
+
+# Specific APOE contrast (Ferritin vs Delirium)
+
+apoe_f_h4 <- df_coloc_key %>% filter(GWAS_trait=="Ferritin", grepl("^APOE pQTL", QTL_or_proxy)) %>% pull(PP_H4) %>% .[1]
+apoe_d_h4 <- df_coloc_key %>% filter(GWAS_trait=="Delirium", grepl("^APOE pQTL", QTL_or_proxy)) %>% pull(PP_H4) %>% .[1]
+
+cat('<div class="cards">')
+
+cat(sprintf(
+'<div class="card"><div class="kpi-label">Key tests summarised</div><div class="kpi">%d</div><div class="kpi-sub">Across APOE / iron loci + proxies</div></div>',
+n_tests
+))
+cat(sprintf(
+'<div class="card"><div class="kpi-label">High PP.H4 (≥0.80)</div><div class="kpi">%d</div><div class="kpi-sub">Evidence for shared causal variant</div></div>',
+n_shared
+))
+cat(sprintf(
+'<div class="card"><div class="kpi-label">High PP.H3 (≥0.80)</div><div class="kpi">%d</div><div class="kpi-sub">Evidence for distinct causal variants</div></div>',
+n_distinct
+))
+cat(sprintf(
+'<div class="card"><div class="kpi-label">APOE pQTL colocalisation</div><div class="kpi">%s vs %s</div><div class="kpi-sub">Ferritin PP.H4 vs Delirium PP.H4</div></div>',
+ifelse(is.na(apoe_f_h4), "—", sprintf("%.3f", apoe_f_h4)),
+ifelse(is.na(apoe_d_h4), "—", sprintf("%.3f", apoe_d_h4))
+))
+
+cat('</div>')
+
+# ---------------------------
+
+# Section A: Summary across loci
+
+# ---------------------------
+
+cat('<details open class="deets"><summary><b>Summary across key loci</b></summary>')
+
+df_show <- df_coloc_key %>%
+mutate(
+nsnps = ifelse(is.na(nsnps), "", as.character(nsnps)),
+PP_H3 = ifelse(is.na(PP_H3), "", sprintf("%.3f", PP_H3)),
+PP_H4 = ifelse(is.na(PP_H4), "", sprintf("%.3f", PP_H4))
+) %>%
+select(GWAS_trait, QTL_or_proxy, nsnps, PP_H3, PP_H4, inference)
+
+print(kbl_nice(
+df_show,
+caption = "Table C-1. Coloc.abf posterior summaries (PP.H3 vs PP.H4) across key loci and proxy panels."
+))
+
+cat('</details>')
+
+# Figure: PP.H4 bar plot
+
+cat('<div class="spacer"></div>')
+print(p_pph4)
+cat('<div class="figcap"><b>Figure C-1 (interpretation).</b> PP.H4 highlights strong locus-specific sharing for several Ferritin–QTL pairs (e.g., APOE pQTL, SLC11A2 eQTLGen, TF sQTL), while Delirium–APOE pQTL shows PP.H3≈1 with PP.H4≈0, supporting distinct causal variants in the same region.</div>')
+
+cat('<hr class="sep"/>')
+
+# ---------------------------
+
+# Section B: Locus deep dive — APOE
+
+# ---------------------------
+
+cat('<details class="deets"><summary><b>Locus deep dive: APOE</b></summary>')
+
+cat('<p class="mini-note"><b>Why this matters.</b> APOE/TOMM40/CEACAM19 is a multi-signal LD block; coloc.abf can show H3 even when a shared subset exists, so SuSiE component-level checks are informative.</p>')
+
+# SuSiE table: Ferritin × APOE pQTL component pairing
+
+if (!is.null(susie_pairs)) {
+sp <- susie_pairs %>%
+mutate(across(where(is.numeric), ~ .)) %>%
+arrange(desc(`PP.H4.abf`)) %>%
+head(10)
+
+print(kbl_nice(
+sp,
+caption = "Table C-2. SuSiE–coloc (Ferritin GWAS × APOE pQTL): top component pairs ranked by PP.H4.abf."
+))
+} else {
+cat('<p><b>Missing table.</b> Could not find the “coloc.susie summary” pipe-table inside <code>Susie; process and results.md</code>.</p>')
+}
+
+# Optional: Heatmap
+
+if (!is.null(p_susie_heat)) {
+cat('<div class="spacer"></div>')
+print(p_susie_heat)
+cat('<div class="figcap"><b>Figure C-2 (interpretation).</b> Component-pair heatmap: bright tiles mark pairs consistent with shared variant(s); off-diagonal high values would suggest cross-component sharing.</div>')
+}
+
+# Delirium × APOE pQTL SuSiE summary
+
+if (nrow(df_sus_del_apoe) > 0) {
+df_del_show <- df_sus_del_apoe %>%
+mutate(
+delirium_leads = ifelse(is.na(delirium_leads), "", delirium_leads),
+pqtl_leads = ifelse(is.na(pqtl_leads), "", pqtl_leads),
+max_PP_shared = ifelse(is.na(max_PP_shared), "", sprintf("%.3e", max_PP_shared))
+)
+print(kbl_nice(
+df_del_show,
+caption = "Table C-3. SuSiE summary for Delirium GWAS × APOE pQTL: credible sets, lead SNPs, and the best observed component overlap (PP_shared)."
+))
+}
+
+cat('</details>')
+
+cat('<hr class="sep"/>')
+
+# ---------------------------
+
+# Section C: Locus deep dive — CEACAM19 (Delirium × Cortex eQTL)
+
+# ---------------------------
+
+cat('<details class="deets"><summary><b>Locus deep dive: CEACAM19</b></summary>')
+
+if (!is.null(ce_sum)) {
+print(kbl_nice(
+ce_sum,
+caption = "Table C-4. Delirium × CEACAM19 (Cortex v8) coloc.abf summary table (as recorded in runlist)."
+))
+}
+
+if (!is.null(ce_top)) {
+cat('<div class="spacer"></div>')
+print(kbl_nice(
+ce_top,
+caption = "Table C-5. Top SNPs by PP.H4 for Delirium × CEACAM19 (Cortex v8)."
+))
+}
+
+if (!is.null(p_ce_pph4)) {
+cat('<div class="spacer"></div>')
+print(p_ce_pph4)
+cat('<div class="figcap"><b>Figure C-3 (interpretation).</b> Two SNPs carry essentially all posterior mass under H4, implying a very small credible set in this window.</div>')
+}
+
+if (!is.null(ce_lead)) {
+cat('<div class="spacer"></div>')
+print(kbl_nice(
+ce_lead,
+caption = "Table C-6. Lead SNP details (aligned effects) for Delirium × CEACAM19 (Cortex v8)."
+))
+}
+
+cat('</details>')
+```
+
