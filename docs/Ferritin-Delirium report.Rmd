@@ -1,5 +1,5 @@
 ---
-title: "Mendelian randomization, SMR/HEIDI, and colocalisation report: Serum ferritin and delirium risk"
+title: "Genetic evidence separates systemic ferritin regulation from brain-localized susceptibility to delirium"
 subtitle: "Serum ferritin and delirium risk: Integrative genomic analysis identifies locus-specific signals at 19q13 with no genome-wide causal effect"
 author: "Nafiseh"
 date: "2025-12-20"
