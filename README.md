@@ -1,6 +1,6 @@
 # Ferritin–Delirium Genomic Analyses
 
-Code and scripts for the integrative genomic study of serum ferritin and delirium risk, including  two-sample Mendelian randomization, SMR/HEIDI, colocalisation, and SuSiE-based fine-mapping. 
+Code and scripts for the integrative genomic study of serum ferritin and delirium risk, including  two-sample Mendelian randomization, SMR/HEIDI, colocalisation, and SuSiE-based fine-mapping. Supplementary results are available at: https://amjahromizadeh.github.io/Ferritin-Delirium/  
 
 ## 1. Study overview
 
