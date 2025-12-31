@@ -6,7 +6,7 @@ Code and scripts for the integrative genomic study of serum ferritin and deliriu
 
 This repository contains the analysis code used in the study:
 
-**​Serum ferritin and delirium risk: Integrative genomic analysis identifies locus-specific signals at 19q13 with no genome-wide causal effect**
+**​Serum ferritin and delirium risk: Integrative genomic analysis identifies locus-specific signals at 19q13**
 
 The main goals are to:
 - test whether genetically proxied serum ferritin has a causal effect on delirium risk using two-sample Mendelian randomization (MR);
