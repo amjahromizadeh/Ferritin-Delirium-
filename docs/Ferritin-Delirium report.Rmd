@@ -1,8 +1,7 @@
 ---
-title: "Genetic evidence separates systemic ferritin regulation from brain-localized susceptibility to delirium"
-subtitle: "Serum ferritin and delirium risk: Integrative genomic analysis identifies locus-specific signals at 19q13 with no genome-wide causal effect"
-author: "Nafiseh"
-date: "2025-12-20"
+title: "Serum ferritin and delirium risk: Integrative genomic analysis identifies locus-specific signals at 19q13"
+subtitle: "Ferritin and Delirium: A genetic dissection"
+date: "2026-01-02"
 output:
   html_document:
     toc: true
@@ -32,7 +31,7 @@ suppressPackageStartupMessages({
 })
 
 # ---------------------------
-# Colour system (your palette)
+# Colour system 
 # ---------------------------
 COL <- list(
   ceil     = "#999ECF",
@@ -53,7 +52,7 @@ COL_DELIRIUM <- COL$pine
 COL_NEUTRAL  <- "#333333"
 
 # ---------------------------
-# Paths (GitHub Pages-friendly)
+# Paths 
 # Assumes this Rmd lives in docs/
 # ---------------------------
 DOCS_DIR <- if (basename(getwd()) == "docs") getwd() else file.path(getwd(), "docs")
@@ -101,10 +100,13 @@ dl_btn <- function(label, href){
 
 ```
 
-<style> :root{ --ceil: #999ECF; --platinum: #EDDDEC; --liberty: #60509D; --blue: #3E389E; --grape: #5D1451; --lilac: #adbae3; --butter: #FFEDA8; --pancake: #D99058; --rose: #E5C8CD; --pine: #1D6C5C; } h1, h2, h3 { color: var(--grape); } h2 { margin-top: 1.2em; border-bottom: 2px solid var(--platinum); padding-bottom: 0.25em; } h3 { margin-top: 1.0em; } .callout { background: var(--platinum); border-left: 6px solid var(--blue); padding: 12px 14px; border-radius: 14px; margin: 10px 0 16px 0; } .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin: 10px 0 16px 0; } .cardx{ background: white; border: 1px solid var(--platinum); border-radius: 16px; padding: 10px 12px; box-shadow: 0 6px 18px rgba(0,0,0,0.04); } .cardx .k { color: #555; font-size: 0.88em; } .cardx .v { color: var(--grape); font-size: 1.25em; font-weight: 700; } .badge{ display:inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.85em; font-weight: 600; background: var(--butter); color: #3a2d00; border: 1px solid rgba(0,0,0,0.06); } details{ background: white; border: 1px solid var(--platinum); border-radius: 16px; padding: 10px 12px; margin: 12px 0 16px 0; } summary{ cursor: pointer; font-weight: 700; color: var(--blue); } summary:hover{ color: var(--liberty); } .dl-btn{ display: inline-block; padding: 8px 12px; border-radius: 999px; background: var(--blue); color: white !important; text-decoration: none !important; font-weight: 700; font-size: 0.90em; margin: 6px 8px 6px 0; } .dl-btn:hover{ background: var(--liberty); } .help{ position: relative; display: inline-block; width: 18px; height: 18px; line-height: 18px; text-align: center; border-radius: 999px; background: var(--lilac); color: var(--grape); font-weight: 800; font-size: 0.85em; margin-left: 6px; vertical-align: text-top; } .helptext{ visibility: hidden; opacity: 0; width: 320px; background: var(--platinum); color: #1f1f1f; border: 1px solid var(--ceil); border-radius: 14px; padding: 10px 12px; position: absolute; z-index: 999; top: 24px; left: -140px; box-shadow: 0 8px 22px rgba(0,0,0,0.08); transition: opacity 0.15s ease-in-out; } .helptext{ visibility: hidden; opacity: 0; width: 320px; background: var(--platinum); color: #1f1f1f; border: 1px solid var(--ceil); border-radius: 14px; padding: 10px 12px; position: absolute; z-index: 999; top: 24px; left: -140px; box-shadow: 0 8px 22px rgba(0,0,0,0.08); transition: opacity 0.15s ease-in-out; } .help:hover .helptext{ visibility: visible; opacity: 1; text-align: justify; text-justify: inter-word; hyphens: auto;} .figcap{ margin-top: 8px; margin-bottom: 26px; font-size: 0.95em; color: #444; background: #fafafa; border: 1px solid var(--platinum); border-radius: 14px; padding: 10px 12px; } .figcap b{ color: var(--grape); } .scroll-x{overflow-x: auto; overflow-y: hidden; width: 100%; padding-bottom: 6px;  } .scroll-xy{overflow: auto; width: 100%; max-height: 420px; padding-bottom: 6px; }
+<style> :root{ --ceil: #999ECF; --platinum: #EDDDEC; --liberty: #60509D; --blue: #3E389E; --grape: #5D1451; --lilac: #adbae3; --butter: #FFEDA8; --pancake: #D99058; --rose: #E5C8CD; --pine: #1D6C5C; } h1, h2, h3 { color: var(--grape); } h2 { margin-top: 1.2em; border-bottom: 2px solid var(--platinum); padding-bottom: 0.25em; } h3 { margin-top: 1.0em; } .callout { background: var(--platinum); border-left: 6px solid var(--blue); padding: 12px 14px; border-radius: 14px; margin: 10px 0 16px 0; } .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin: 10px 0 16px 0; } .cardx{ background: white; border: 1px solid var(--platinum); border-radius: 16px; padding: 10px 12px; box-shadow: 0 6px 18px rgba(0,0,0,0.04); } .cardx .k { color: #555; font-size: 0.88em; } .cardx .v { color: var(--grape); font-size: 1.25em; font-weight: 700; } .badge{ display:inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.85em; font-weight: 600; background: var(--butter); color: #3a2d00; border: 1px solid rgba(0,0,0,0.06); } details{ background: white; border: 1px solid var(--platinum); border-radius: 16px; padding: 10px 12px; margin: 12px 0 16px 0; } summary{ cursor: pointer; font-weight: 700; color: var(--blue); } summary:hover{ color: var(--liberty); } .dl-btn{ display: inline-block; padding: 8px 12px; border-radius: 999px; background: var(--blue); color: white !important; text-decoration: none !important; font-weight: 700; font-size: 0.90em; margin: 6px 8px 6px 0; } .dl-btn:hover{ background: var(--liberty); } .help{ position: relative; display: inline-block; width: 18px; height: 18px; line-height: 18px; text-align: center; border-radius: 999px; background: var(--lilac); color: var(--grape); font-weight: 800; font-size: 0.85em; margin-left: 6px; vertical-align: text-top; } .helptext{ visibility: hidden; opacity: 0; width: 320px; background: var(--platinum); color: #1f1f1f; border: 1px solid var(--ceil); border-radius: 14px; padding: 10px 12px; position: absolute; z-index: 999; top: 24px; left: -140px; box-shadow: 0 8px 22px rgba(0,0,0,0.08); transition: opacity 0.15s ease-in-out; } .helptext{ visibility: hidden; opacity: 0; width: 320px; background: var(--platinum); color: #1f1f1f; border: 1px solid var(--ceil); border-radius: 14px; padding: 10px 12px; position: absolute; z-index: 999; top: 24px; left: -140px; box-shadow: 0 8px 22px rgba(0,0,0,0.08); transition: opacity 0.15s ease-in-out; } .help:hover .helptext{ visibility: visible; opacity: 1; text-align: justify; text-justify: inter-word; hyphens: auto;} .figcap{ margin-top: 8px; margin-bottom: 26px; font-size: 0.95em; color: #444; background: #fafafa; border: 1px solid var(--platinum); border-radius: 14px; padding: 10px 12px; } .figcap b{ color: var(--grape); } .scroll-x{overflow-x: auto; overflow-y: hidden; width: 100%; padding-bottom: 6px;  } .scroll-xy{overflow: auto; width: 100%; max-height: 420px; padding-bottom: 6px; } 
 </style>
+
   
-## Authors List:
+## Title Page
+
+Authors list: 
 
  1.  Amirhossein Saed
  2.  Mahdi Akbarzadeh
@@ -155,7 +157,7 @@ Outcome: Delirium \| GWAS summary statistics: [GWAS catalogue](https://www.ebi.a
 
 ------------------------------------------------------------------------
 
-## Integrated results across MR, SMR/HEIDI, and colocalisation {.tabset .tabset-fade}
+## Integrated results across MR, SMR/HEIDI, coloc and SuSiE {.tabset .tabset-fade}
 
 ### **Two-sample MR** 
 
@@ -285,8 +287,11 @@ mr_tbl <- mr_main |>
     `p` = fmt_p(pval)
   )
 
-cat(dl_btn("Download: MR main table", "data/tab1_mr_main.tsv"))
+cat(dl_btn("Download: MR main table", "data/Table S1 MR Main.tsv"))
 cat(kbl_nice(mr_tbl, caption = "Table S1. Two-sample MR estimates for ferritin → delirium across estimators."))
+
+cat(sprintf('
+<div class="figcap"><b>Table S1.</b> Two-sample MR causal estimates for ferritin → delirium across IVW, MR-Egger, and weighted median (OR per SD higher ferritin).</div>'))
 
 # Table S2: diagnostics “scoreboard”
 diag_tbl <- tibble::tibble(
@@ -318,12 +323,29 @@ diag_tbl <- tibble::tibble(
   )
 )
 
-cat(dl_btn("Download: MR heterogeneity", "data/tab1_mr_heterogeneity.tsv"))
-cat(dl_btn("Download: MR pleiotropy", "data/tab1_mr_pleiotropy.tsv"))
-cat(dl_btn("Download: MR Steiger", "data/tab1_mr_steiger.tsv"))
-cat(dl_btn("Download: MR-PRESSO", "data/tab1_mr_presso.tsv"))
+
 
 cat(kbl_nice(diag_tbl, caption = "Table S2. Diagnostic summary for strength, heterogeneity, pleiotropy, directionality, and outliers."))
+cat(sprintf('
+<div class="figcap"><b>Table S2.</b> Instrument diagnostics for ferritin → delirium, including strength (F), heterogeneity (Cochran’s Q), directional pleiotropy (Egger intercept), directionality (Steiger), and MR-PRESSO outlier assessment.</div>'))
+
+
+cat(dl_btn("Download: Table S3. MR heterogeneity", "data/Table S3 MR Heterogeneity.tsv"))
+cat(sprintf('
+<div class="figcap"><b>Table S3.</b> Cochran’s Q heterogeneity statistics for IVW and MR-Egger models (Q, df, p).</div>'))
+
+cat(dl_btn("Download: Table S4. MR pleiotropy", "data/Table S4 MR Pleiotropy.tsv"))
+cat(sprintf('
+<div class="figcap"><b>Table S4.</b> MR-Egger intercept test for directional pleiotropy (intercept, SE, p).</div>'))
+
+cat(dl_btn("Download: Table S5. MR Steiger", "data/Table S5 MR Steiger.tsv"))
+cat(sprintf('
+<div class="figcap"><b>Table S5.</b> Steiger filtering results comparing variance explained in exposure vs outcome (R²x, R²y) and inferred causal direction.</div>'))
+
+cat(dl_btn("Download: Table S6. MR-PRESSO", "data/Table S6 MR PRESSO.tsv"))
+cat(sprintf('
+<div class="figcap"><b>Table S6.</b> MR-PRESSO raw and outlier-corrected causal estimates for ferritin → delirium, including OR.</div>'))
+
 ```
 
 
@@ -369,7 +391,7 @@ ggsave(file.path(FIG_DIR, "Figure_MR1_forest_theme.png"), p_forest,
 
 <div class="figcap">
   <b>Figure S1. Causal estimates across MR estimators.</b>
-  Estimates are directionally consistent but imprecise across methods; the primary IVW (random-effects) interval includes the null.
+  OR= Odds Ratio.Estimates are directionally consistent; primary IVW (randomeffects) interval includes the null.
 </div>
 
 <details>
@@ -387,7 +409,7 @@ render_fig <- function(title, filename, caption){
     return(invisible(FALSE))
   }
 
-  # Use repo-relative path for HTML (works on GitHub Pages)
+  # Use repo-relative path for HTML 
   src <- sprintf("figures/%s", filename)
 
   cat(sprintf("<h4>%s</h4>", title))
@@ -396,7 +418,7 @@ render_fig <- function(title, filename, caption){
     src, COL$platinum
   ))
   cat(sprintf(
-    "<div class='figcap'><b>Interpretive caption.</b> %s</div>",
+    "<div class='figcap'>%s</div>",
     caption
   ))
 
@@ -418,19 +440,19 @@ render_fig(
 render_fig(
   "Figure S3. Funnel plot",
   fn_funnel,
-  "Funnel symmetry provides a qualitative screen for outlier/asymmetry patterns that can reflect pleiotropy or influential instruments."
+  "Funnel plot of per-SNP Wald ratio estimates versus their standard errors to screen for outliers."
 )
 
 render_fig(
   "Figure S4. Leave-one-out influence plot",
   fn_loo,
-  "Stability of the IVW estimate under leave-one-out suggests the inference is not driven by a single SNP; large shifts would indicate sensitivity to specific instruments."
+  "Stability of the IVW estimate under leave-one-out suggests the inference is not driven by a single SNP."
 )
 
 render_fig(
-  "Figure S5. MR-PRESSO outlier map",
+  "Figure S5. MR-PRESSO outlier plot",
   fn_presso,
-  "MR-PRESSO outlier map visualises instruments flagged as outliers; interpretation should be paired with the global outlier test and the distortion test."
+  "MR-PRESSO outlier map showing studentized residuals versus leverage (hat values) for instruments, with global and distortion test p-values and identified outliers."
 )
 
 ```
@@ -440,8 +462,8 @@ render_fig(
 ### **SMR/HEIDI**
 
 ```{r tab2_smr_load, include=FALSE}
-S1_FN <- "SuppTable_S1_SMR_HEIDI_panel_summary.tsv"
-S2_FN <- "SuppTable_S2_SMR_HEIDI_BF_hits_probe_level.tsv"
+S1_FN <- "Table S7 Panel summary.tsv"
+S2_FN <- "Table S8 HEIDI&BF probe level hits.tsv"
 
 S1_PATH <- file.path(DATA_DIR, S1_FN)
 S2_PATH <- file.path(DATA_DIR, S2_FN)
@@ -585,9 +607,14 @@ cat('</div>')
 
 # Download buttons for the two TSVs
 cat('<div style="margin-top:10px; margin-bottom:14px;">')
-cat(dl_btn("Download: Table S3 (panel summary)", paste0("data/", S1_FN)))
+cat(dl_btn("Download: Table S7 (panel summary)", paste0("data/", S1_FN)))
+cat(sprintf('
+<div class="figcap"><b>Table S7.</b> SMR/HEIDI panel-level summary by trait, tissue, omics layer, and QTL panel, reporting probes/genes passing Bonferroni+HEIDI and the most significant retained signal per panel.</div>'))
+
 cat(" ")
-cat(dl_btn("Download: Table S4 (BF+HEIDI probe-level hits)", paste0("data/", S2_FN)))
+cat(dl_btn("Download: Table S8 (BF+HEIDI probe-level hits)", paste0("data/", S2_FN)))
+cat(sprintf('
+<div class="figcap"><b>Table S8.</b> Probe-level SMR hits retained after panel-wise Bonferroni and HEIDI filtering, with lead SNP, effect estimates, and HEIDI diagnostics across traits and panels.</div>'))
 cat('</div>')
 ```
 
@@ -610,7 +637,7 @@ ggsave(file.path(FIG_DIR, "Figure_SMR_heatmap_tissue_omics.png"), p_heat,
 
 ```
 
-<div class="figcap"><b>Figure S6.</b> Tissue × omics yield heatmap (sum of BF+HEIDI passing probes across panels), contrasting Ferritin’s broad cis-mediated signal landscape with Delirium’s sparse retained signals.</div> 
+<div class="figcap"><b>Figure S6.</b> Tissue × omics yield heatmap (sum of BF+HEIDI passing probes across panels). Heatmap of aggregated BF+HEIDI passing probe counts across panels by tissue and omics layer, shown separately for Delirium, on the left, and Ferritin, on the right.</div> 
 
 ```{r tab2_fig_top_panels_ferr}
 p_panels <- ggplot(top_panels_ferr, aes(x = reorder(panel_label, n_pass_probes), y = n_pass_probes)) +
@@ -626,7 +653,7 @@ ggsave(file.path(FIG_DIR, "Figure_SMR_Ferritin_top_panels.png"), p_panels,
 
 ```
 
-<div class="figcap"><b>Figure S7.</b> Highest-yield Ferritin panels by number of BF+HEIDI passing probes, highlighting where cis-mediated associations are most concentrated.</div>
+<div class="figcap"><b>Figure S7.</b> Highest-yield Ferritin panels by number of BF+HEIDI passing probes. Ferritin cis-QTL panels ranked by the number of BF+HEIDI passing probes. Horizontal bars represent passing probe counts per xQTL panel.</div>
 
 ```{r tab2_fig_top_genes_ferr}
 p_genes <- ggplot(top_genes_ferr, aes(x = gene, y = neglog10)) +
@@ -643,7 +670,7 @@ ggsave(file.path(FIG_DIR, "Figure_SMR_Ferritin_top_genes_lollipop.png"), p_genes
 
 ```
 
-<div class="figcap"><b>Figure S8.</b> Top Ferritin genes ranked by the most significant SMR association per gene (minimum p<sub>SMR</sub> across BF+HEIDI passing records).</div> 
+<div class="figcap"><b>Figure S8.</b> Top Ferritin genes based on SMR significance. Top Ferritin genes ranked by the most significant SMR association per gene (minimum p<sub>SMR</sub> across BF+HEIDI passing records).</div> 
 
 ```{r tab2_fig_delir_locus}
 p_del <- ggplot(del_gene_best, aes(x = gene, y = neglog10)) +
@@ -658,11 +685,26 @@ ggsave(file.path(FIG_DIR, "Figure_SMR_Delirium_locus_minibar.png"), p_del,
 
 ```
 
-<div class="figcap"><b>Figure S9.</b> Delirium retained genes (best p<sub>SMR</sub> per gene) show a sparse profile dominated by the 19q13 locus signals.</div>
+<div class="figcap"><b>Figure S9.</b> Delirium retained genes (best pSMR per gene). All three signals are located at the 19q13 locus.</div>
 
 ```{r tab2_tables_main, results="asis"}
+
+# Helper: scrollable table with caption AFTER the scroll container
+render_scroll_table <- function(df, scroll_class, figcap_html) {
+  cat(sprintf('<div class="%s">', scroll_class))
+  cat(kbl_nice(df, caption = NULL))   # caption must NOT be inside the scroll container
+  cat('</div>\n')                    # close scroll container BEFORE caption
+  cat(figcap_html)
+}
+
+# Helper: non-scroll table with caption below
+render_plain_table <- function(df, figcap_html) {
+  cat(kbl_nice(df, caption = NULL))
+  cat(figcap_html)
+}
+
 # ---------
-# Table S5: Delirium retained hits (all rows)
+# Table S9: Delirium retained hits (all rows)
 # ---------
 t1 <- data.table::copy(tbl_delir_hits)
 t1[, b_smr := fmt_num(as.numeric(b_smr), 6)]
@@ -670,11 +712,14 @@ t1[, se_smr := fmt_num(as.numeric(se_smr), 6)]
 t1[, p_smr := fmt_e(as.numeric(p_smr), 2)]
 t1[, p_heidi := fmt_p(as.numeric(p_heidi))]
 t1[, p_bonf_panel := fmt_e(as.numeric(p_bonf_panel), 2)]
-cat('<div class="scroll-x">')
-cat(kbl_nice(t1, caption = "Table S5. Delirium BF+HEIDI-retained SMR hits (all passing records)."))
-cat('</div>')
+
+render_scroll_table(
+  t1, "scroll-x",
+  sprintf('\n<div class="figcap"><b>Table S9.</b> All Delirium SMR associations retained under Bonferroni+HEIDI, listing locus details, lead SNP, SMR effect, and HEIDI statistics.</div>\n')
+)
+
 # ---------
-# Table S6: Strict cross-trait overlap (shared genes; APOE only here)
+# Table S10: Strict cross-trait overlap (shared genes; APOE only here)
 # ---------
 t2 <- data.table::copy(tbl_overlap)
 t2[, b_smr := fmt_num(as.numeric(b_smr), 6)]
@@ -682,59 +727,62 @@ t2[, se_smr := fmt_num(as.numeric(se_smr), 6)]
 t2[, p_smr := fmt_e(as.numeric(p_smr), 2)]
 t2[, p_heidi := fmt_p(as.numeric(p_heidi))]
 t2[, p_bonf_panel := fmt_e(as.numeric(p_bonf_panel), 2)]
-cat('<div class="scroll-x">')
-cat(kbl_nice(t2, caption = "Table S6. Strict cross-trait overlap under BF+HEIDI (shared genes)."))
-cat('</div>')
+
+render_scroll_table(
+  t2, "scroll-x",
+  sprintf('\n<div class="figcap"><b>Table S10.</b> Strict cross-trait overlap of BF+HEIDI-retained genes, showing matching retained records for the shared gene(s) across Ferritin and Delirium.</div>\n')
+)
+
 # ---------
-# Table S7: Tissue × omics yields (aggregated)
+# Table S11: Tissue × omics yields (aggregated)
 # ---------
 t3 <- data.table::copy(tbl_yield_matrix)
-cat(kbl_nice(t3, caption = "Table S7. Sum of BF+HEIDI passing probes by tissue × omics (aggregated across panels)."))
-```
 
-<details>
-<summary>Table S8: panel-level summary (all 86 panels)</summary>
+render_plain_table(
+  t3,
+  sprintf('\n<div class="figcap"><b>Table S11.</b> Aggregated counts of Bonferroni+HEIDI passing probes by tissue and omics layer, shown separately for Ferritin and Delirium.</div>\n')
+)
 
-```{r tab2_table_S1_full, results="asis"}
+# ---------
+# Table S12 — SMR/HEIDI panel summary
+# ---------
 tS1 <- data.table::copy(tbl_S1_full)
 tS1[, p_bonf_panel := fmt_e(as.numeric(p_bonf_panel), 2)]
 tS1[, min_p_smr_pass := fmt_e(as.numeric(min_p_smr_pass), 2)]
-cat('<div class="scroll-xy">')
-cat(kbl_nice(tS1, caption = "Table S8 — SMR/HEIDI panel summary."))
-cat('</div>')
-```
 
-</details> 
+render_scroll_table(
+  tS1, "scroll-xy",
+  sprintf('\n<div class="figcap"><b>Table S12.</b> Panel-level SMR/HEIDI results by trait, tissue, omics layer, and QTL panel, reporting the number of tested probes, panel-wise Bonferroni threshold, BF+HEIDI passing counts, and the top retained signal per panel.</div>\n')
+)
 
-<details> 
-<summary>Table S9: BF+HEIDI passing hits (probe level)</summary>
-
-```{r tab2_table_S2_full, results="asis"}
+# ---------
+# Table S13 — Bonferroni+HEIDI retained SMR hits
+# ---------
 tS2 <- data.table::copy(tbl_S2_full)
 tS2[, b_smr := fmt_num(as.numeric(b_smr), 6)]
 tS2[, se_smr := fmt_num(as.numeric(se_smr), 6)]
 tS2[, p_smr := fmt_e(as.numeric(p_smr), 2)]
 tS2[, p_heidi := fmt_p(as.numeric(p_heidi))]
 tS2[, p_bonf_panel := fmt_e(as.numeric(p_bonf_panel), 2)]
-cat('<div class="scroll-xy">')
-cat(kbl_nice(tS2, caption = "Table S9 — Bonferroni+HEIDI retained SMR hits."))
-cat('</div>')
-```
 
-</details> 
+render_scroll_table(
+  tS2, "scroll-xy",
+  sprintf('\n<div class="figcap"><b>Table S13.</b> Complete Bonferroni+HEIDI-retained SMR hit list across both traits, including panel metadata, lead SNP, SMR effect/SE, p-values, and HEIDI support.</div>\n')
+)
 
-<details> 
-<summary>Table S10 (preview): Ferritin top BF+HEIDI passing records (smallest p<sub>SMR</sub>)</summary>
-
-```{r tab2_table_6_full, results="asis"}
+# ---------
+# Table S14 (preview) — Ferritin top BF+HEIDI passing records
+# ---------
 t6 <- data.table::copy(tbl_ferr_top_hits)
 t6[, b_smr := fmt_num(as.numeric(b_smr), 6)]
 t6[, se_smr := fmt_num(as.numeric(se_smr), 6)]
 t6[, p_smr := fmt_e(as.numeric(p_smr), 2)]
 t6[, p_heidi := fmt_p(as.numeric(p_heidi))]
-cat('<div class="scroll-xy">')
-cat(kbl_nice(t6, caption = "Table S10 (preview) - Top Ferritin BF+HEIDI passing records ranked by p_SMR."))
-cat('</div>')
+
+render_scroll_table(
+  t6, "scroll-xy",
+  sprintf('\n<div class="figcap"><b>Table S14 (preview).</b> Top Ferritin BF+HEIDI passing records ranked by p<sub>SMR</sub>, reporting locus details, lead SNP, SMR effect, and HEIDI statistics.</div>\n')
+)
 
 ``` 
 
@@ -990,7 +1038,7 @@ df_coloc_key <- tibble::tibble(
   )
 
 # ---------------------------
-# 2) SuSiE results (from susie md) — parse tables where available
+# 2) SuSiE results (from susie md) 
 # ---------------------------
 
 # Ferritin ↔ APOE pQTL: coloc.susie summary table
@@ -1072,7 +1120,7 @@ if (!is.null(susie_pairs) && all(c("idx1","idx2","PP.H4.abf") %in% names(susie_p
 ```{r tab3,  results="asis"}
 # ---------------------------
 
-# Executive KPI cards (match Tab1/2 style)
+# Executive KPI cards 
 
 # ---------------------------
 
@@ -1088,21 +1136,24 @@ apoe_d_h4 <- df_coloc_key %>% filter(GWAS_trait=="Delirium", grepl("^APOE pQTL",
 cat('<div class="cards">')
 
 cat(sprintf(
-'<div class="card"><div class="kpi-label">Key tests summarised</div><div class="kpi">%d</div><div class="kpi-sub">Across APOE / iron loci + proxies</div></div>',
-n_tests
+  '<div class="cardx"><div class="k">Key tests summarised</div><div class="v">%d</div><div class="k">Across APOE / iron loci + proxies</div></div>',
+  n_tests
 ))
+
 cat(sprintf(
-'<div class="card"><div class="kpi-label">High PP.H4 (≥0.80)</div><div class="kpi">%d</div><div class="kpi-sub">Evidence for shared causal variant</div></div>',
-n_shared
+  '<div class="cardx"><div class="k">High PP.H4 (≥0.80)</div><div class="v">%d</div><div class="k">Evidence for a shared causal variant</div></div>',
+  n_shared
 ))
+
 cat(sprintf(
-'<div class="card"><div class="kpi-label">High PP.H3 (≥0.80)</div><div class="kpi">%d</div><div class="kpi-sub">Evidence for distinct causal variants</div></div>',
-n_distinct
+  '<div class="cardx"><div class="k">High PP.H3 (≥0.80)</div><div class="v">%d</div><div class="k">Evidence for distinct causal variants</div></div>',
+  n_distinct
 ))
+
 cat(sprintf(
-'<div class="card"><div class="kpi-label">APOE pQTL colocalisation</div><div class="kpi">%s vs %s</div><div class="kpi-sub">Ferritin PP.H4 vs Delirium PP.H4</div></div>',
-ifelse(is.na(apoe_f_h4), "—", sprintf("%.3f", apoe_f_h4)),
-ifelse(is.na(apoe_d_h4), "—", sprintf("%.3f", apoe_d_h4))
+  '<div class="cardx"><div class="k">APOE pQTL colocalisation</div><div class="v">%s vs %s</div><div class="k">Ferritin PP.H4 vs Delirium PP.H4</div></div>',
+  ifelse(is.na(apoe_f_h4), "—", sprintf("%.3f", apoe_f_h4)),
+  ifelse(is.na(apoe_d_h4), "—", sprintf("%.3f", apoe_d_h4))
 ))
 
 cat('</div>')
@@ -1125,16 +1176,17 @@ select(GWAS_trait, QTL_or_proxy, nsnps, PP_H3, PP_H4, inference)
 
 print(kbl_nice(
 df_show,
-caption = "Table S11: Coloc.abf posterior summaries (PP.H3 vs PP.H4) across key loci and proxy panels."
+caption = "Table S15: Coloc.abf posterior summaries (PP.H3 vs PP.H4) across key loci and proxy panels."
 ))
-
+cat(sprintf('
+<div class="figcap"><b>Table S15.</b> Colocalisation posterior summaries across key loci and proxy panels, contrasting evidence for distinct signals (PP.H3) versus a shared causal variant (PP.H4).</div>'))
 cat('</details>')
 
 # Figure: PP.H4 bar plot
 
 cat('<div class="spacer"></div>')
 print(p_pph4)
-cat('<div class="figcap"><b>Figure S10.</b> PP.H4 highlights strong locus-specific sharing for several Ferritin–QTL pairs (e.g., APOE pQTL, SLC11A2 eQTLGen, TF sQTL), while Delirium–APOE pQTL shows PP.H3≈1 with PP.H4≈0, supporting distinct causal variants in the same region.</div>')
+cat('<div class="figcap"><b>Figure S10.</b> Colocalisation evidence across key tests (PP.H4). Posterior probability of a shared causal variant (PP.H4) across key GWAS–QTL/proxy comparisons. The dashed line marks the PP.H4 ≥ 0.80 threshold to denote strong shared-signal support.</div>')
 
 cat('<hr class="sep"/>')
 
@@ -1158,18 +1210,16 @@ head(10)
 
 print(kbl_nice(
 sp,
-caption = "Table S12: SuSiE–coloc (Ferritin GWAS × APOE pQTL): top component pairs ranked by PP.H4.abf."
-))
-} else {
-cat('<p><b>Missing table.</b> Could not find the “coloc.susie summary” pipe-table inside <code>Susie; process and results.md</code>.</p>')
-}
+caption = "Table S16: SuSiE–coloc (Ferritin GWAS × APOE pQTL): top component pairs ranked by PP.H4.abf."))}
+cat(sprintf('
+<div class="figcap"><b>Table S16.</b> Top SuSiE component-pair matches for Ferritin GWAS × APOE pQTL, ranked by PP.H4.abf, reporting best-aligned SNP pairs and posterior breakdown.</div>'))
 
-# Optional: Heatmap
+# Heatmap
 
 if (!is.null(p_susie_heat)) {
 cat('<div class="spacer"></div>')
 print(p_susie_heat)
-cat('<div class="figcap"><b>Figure S11.</b> Component-pair heatmap: bright tiles mark pairs consistent with shared variant(s); off-diagonal high values would suggest cross-component sharing.</div>')
+cat('<div class="figcap"><b>Figure S11.</b> Component-pair heatmap. SuSiE–coloc component-pair matrix showing PP.H4 support for shared signals between Ferritin GWAS components and APOE pQTL components. Darker cells indicate stronger colocalisation.</div>')
 }
 
 # Delirium × APOE pQTL SuSiE summary
@@ -1183,9 +1233,12 @@ max_PP_shared = ifelse(is.na(max_PP_shared), "", sprintf("%.3e", max_PP_shared))
 )
 print(kbl_nice(
 df_del_show,
-caption = "Table S13: SuSiE summary for Delirium GWAS × APOE pQTL: credible sets, lead SNPs, and the best observed component overlap (PP_shared)."
+caption = "Table S17: SuSiE summary for Delirium GWAS × APOE pQTL: credible sets, lead SNPs, and the best observed component overlap (PP_shared)."
 ))
 }
+
+cat(sprintf('
+<div class="figcap"><b>Table S17.</b> SuSiE summary for Delirium GWAS × APOE pQTL, listing credible sets, lead SNPs, and the maximum observed shared-signal probability (PP_shared).</div>'))
 
 cat('</details>')
 
@@ -1202,31 +1255,40 @@ cat('<details class="deets"><summary><b>Locus deep dive: CEACAM19</b></summary>'
 if (!is.null(ce_sum)) {
 print(kbl_nice(
 ce_sum,
-caption = "Table S14: Delirium × CEACAM19 (Cortex v8) coloc.abf summary table (as recorded in runlist)."
+caption = "Table S18: Delirium × CEACAM19 (Cortex v8) coloc.abf summary table (as recorded in runlist)."
 ))
 }
+
+cat(sprintf('
+<div class="figcap"><b>Table S18.</b> Coloc.abf posterior probabilities (H0–H4) for Delirium GWAS × CEACAM19 eQTL in cortex (v8), as recorded in the runlist.</div>'))
 
 if (!is.null(ce_top)) {
 cat('<div class="spacer"></div>')
 print(kbl_nice(
 ce_top,
-caption = "Table S15: Top SNPs by PP.H4 for Delirium × CEACAM19 (Cortex v8)."
+caption = "Table S19: Top SNPs by PP.H4 for Delirium × CEACAM19 (Cortex v8)."
 ))
 }
+cat(sprintf('
+<div class="figcap"><b>Table S19.</b> SNP-level ranking by PP.H4 for the Delirium × CEACAM19 cortex colocalisation window, highlighting variants driving the shared-signal posterior.</div>'))
+
 
 if (!is.null(p_ce_pph4)) {
 cat('<div class="spacer"></div>')
 print(p_ce_pph4)
-cat('<div class="figcap"><b>Figure S12.</b> Two SNPs carry essentially all posterior mass under H4, implying a very small credible set in this window.</div>')
+cat('<div class="figcap"><b>Figure S12.</b> Per-SNP PP.H4 at the CEACAM19 locus. SNP-level PP.H4 contributions for Delirium × CEACAM19 cortex colocalisation, highlighting the variants that drive the shared-signal posterior in this region.</div>')
 }
 
 if (!is.null(ce_lead)) {
 cat('<div class="spacer"></div>')
 print(kbl_nice(
 ce_lead,
-caption = "Table S16. Lead SNP details (aligned effects) for Delirium × CEACAM19 (Cortex v8)."
+caption = "Table S20. Lead SNP details (aligned effects) for Delirium × CEACAM19 (Cortex v8)."
 ))
 }
+
+cat(sprintf('
+<div class="figcap"><b>Table S20.</b> Lead-variant effect alignment for Delirium GWAS and CEACAM19 cortex eQTL (betas/SE/MAF) alongside PP.H4, supporting interpretation of the colocalised signal.</div>'))
 
 cat('</details>')
 ```
